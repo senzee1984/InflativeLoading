@@ -72,7 +72,7 @@ for(i = ImportDir; i < ImportDir + ImportDir_Size; i = i + 0x14)	//Each entry(dl
 			Func_Addr = GetProcAddress(module_addr, Func_Name)
 			
 		}
-		IAT_THUNK = Func_Addr
+		PEP[IAT_THUNK] = Func_Addr
 		processedbytes += 0x10
 				
 	}
