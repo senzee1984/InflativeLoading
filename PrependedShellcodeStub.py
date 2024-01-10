@@ -197,21 +197,17 @@ CODE = (
 
 "update_entry:"
 " sub [r8], r14;"			# Update the address
-#" int3;"
 " mov r8, r11;"				# Restore r8
 " add rsi, 2;"				# Move to next entry by adding 2 bytes
 " jmp loop_reloc_entries;"
 
 "next_block:"
+" add rsi, 2;"	
 " jmp loop_reloc_block;"
 
 "reloc_fixed_end:"
 " nop;"
 " sub rsp,8;"                   		# 
-" nop;"
-" nop;"
-" nop;"
-" nop;"
 " nop;"
 " nop;"
 " nop;"
@@ -232,7 +228,7 @@ def print_byte_array(byte_array, line_length=20, max_lines=30):
         print(f"buf += b\"{formatted_line}\"")
     print("......"+str(len(byte_array)-600) +" more bytes......")
 
-pe_file_path = 'dumped.bin'
+pe_file_path = 'calc.bin'
 pe_array = read_pe_file(pe_file_path)
 
 
