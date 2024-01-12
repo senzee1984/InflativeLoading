@@ -1,6 +1,6 @@
 import ctypes, struct
 from keystone import *
-
+import sys
 
 
 CODE = (
@@ -169,7 +169,7 @@ CODE = (
 
 "loop_reloc_block:"
 " cmp rsi, rdi;"          		# Compare current block with the end of BaseReloc
-" je reloc_fixed_end;"    		# If equal, exit the loop
+" jge reloc_fixed_end;"    		# If equal, exit the loop
 " xor r8, r8;"
 " mov r8d, [rsi];"			# R8 = Current block's page RVA
 " add r8, rbx;"				# R8 points to current block page (Should add an offset later)
@@ -202,6 +202,7 @@ CODE = (
 " jmp loop_reloc_entries;"
 
 "next_block:"
+#" int3;"
 " add rsi, 2;"	
 " jmp loop_reloc_block;"
 
@@ -228,7 +229,9 @@ def print_byte_array(byte_array, line_length=20, max_lines=30):
         print(f"buf += b\"{formatted_line}\"")
     print("......"+str(len(byte_array)-600) +" more bytes......")
 
-pe_file_path = 'calc.bin'
+if len(sys.argv)!=2:
+        print("Usage: python3 shellcodify.py calc.bin")
+pe_file_path = sys.argv[1]
 pe_array = read_pe_file(pe_file_path)
 
 
