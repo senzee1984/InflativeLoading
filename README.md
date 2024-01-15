@@ -1,4 +1,4 @@
-# PE_Shellcodify
+# InflativeLoading
 
 ## ReadPEInMemory
 To avoid manual mapping of an exe, run this program to get a template of in-memory exe file.
