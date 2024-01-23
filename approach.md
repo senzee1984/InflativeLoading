@@ -30,6 +30,43 @@ if (TLSDir.SizeSize!=)
 ### (Optional)x86 support: Medium
 
 ### (Optional)Delay Import: Hard
+```c
+ rva = ntnew->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_DELAY_IMPORT].VirtualAddress;
+    
+    if(rva != 0) {
+      DPRINT("Processing Delayed Import Table");
+      
+      del = RVA2VA(PIMAGE_DELAYLOAD_DESCRIPTOR, cs, rva);
+      
+      // For each DLL
+      for (;del->DllNameRVA != 0; del++) {
+        name = RVA2VA(PCHAR, cs, del->DllNameRVA);
+        
+        dll = xGetLibAddress(inst, name);
+        
+        if(dll == NULL) continue;
+        
+        // Resolve the API for this library
+        oft = RVA2VA(PIMAGE_THUNK_DATA, cs, del->ImportNameTableRVA);
+        ft  = RVA2VA(PIMAGE_THUNK_DATA, cs, del->ImportAddressTableRVA);
+          
+        // For each API
+        for (;; oft++, ft++) {
+          // No API left?
+          if (oft->u1.AddressOfData == 0) break;
+
+          // Resolve by ordinal?
+          if (IMAGE_SNAP_BY_ORDINAL(oft->u1.Ordinal)) {
+            ft->u1.Function = (ULONG_PTR)xGetProcAddress(inst, dll, NULL, oft->u1.Ordinal);
+          } else {
+            // Resolve by name
+            ibn = RVA2VA(PIMAGE_IMPORT_BY_NAME, cs, oft->u1.AddressOfData);
+            ft->u1.Function = (ULONG_PTR)xGetProcAddress(inst, dll, ibn->Name, 0);
+          }
+        }
+      }
+    }
+```
 
 ### (Optional)Function Patch: Medium
 
