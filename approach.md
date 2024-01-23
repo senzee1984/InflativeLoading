@@ -45,7 +45,8 @@ Optional functions: `GetDefaultDomain`, `CreateDomain`, `UnloadDomain`, `Stop`, 
 
 
 ## (Optional)Script
-Needed interfaces: IActiveScriptSite, IActiveScriptSiteWindowVtbl, IHostVtbl, IActiveScriptParse
+Needed interfaces: `IActiveScriptSite`, `IActiveScriptSiteWindowVtbl`, `IHostVtbl`, `IActiveScriptParse`
 
-Needed functions: CoInitializeEx, CoCreateInstance, QueryInterface,  InitNew, SetScriptSite, AddNamedItem, ParseScriptText, SetScriptState
+Needed functions: `CoInitializeEx`, `CoCreateInstance`, `QueryInterface`,  `InitNew`, `SetScriptSite`, `AddNamedItem`, `ParseScriptText`, `SetScriptState`
+
 - VBA, JS, Powershell
