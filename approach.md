@@ -74,7 +74,7 @@ if (TLSDir.SizeSize!=)
 ## Managed PE
 Needed module: `mscoree`
 
-Needed functions: `CLRCreateInstane/CorBindToRuntime`, `GetRuntime`, `GetInterface`, `IsLoadable`, `Start`, `ExecuteInDefaultAppDomain` 
+Needed functions: `CLRCreateInstane/CorBindToRuntime`, `GetRuntime`(vtable+0x18), `GetInterface`(vtable+0x48), `IsLoadable`, `Start`(vtable+0x18), `ExecuteInDefaultAppDomain`(vtable+0x58) 
 
 Optional functions: `GetDefaultDomain`, `CreateDomain`, `UnloadDomain`, `Stop`, `Release`, etc.
 
