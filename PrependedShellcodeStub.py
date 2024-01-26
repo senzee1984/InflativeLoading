@@ -75,8 +75,7 @@ CODE = (
 "fix_iat:"  				# Init necessary variable for fixing IAT
 " xor rsi, rsi;"
 " xor rdi, rdi;"
-" lea rbx, [rip+0x15e];"		# RBX points to PE part of shellcode, now 346 bytes in total
-" nop;"
+" lea rbx, [rip+0x1fe];"		# RBX points to PE part of shellcode, now 346 bytes in total
 " xor rax, rax;"
 " mov eax, [rbx+0x3c];"   		# EAX contains e_lfanew
 " add rax, rbx;"          		# RAX points to NT Header
@@ -143,6 +142,74 @@ CODE = (
 
 "module_loop_end:"
 
+
+
+"fix_delayed_iat:"
+" xor rax, rax;"
+" mov eax, [rbx+0x3c];"			# EAX contains e_lfanew
+" add rax, rbx;"			# RAX points to NT Header
+" mov esi, [rax+0xe0];"			# ESI = DelayedImportDir RVA
+" test esi, esi;"			# If RVA = 0?
+" jz fix_reloc;"			# Skip delay import table fix
+" add rsi, rbx;"			# RSI points to DelayedImportDir
+
+"loop_delayed_module:"
+" xor rcx, rcx;"			
+" mov ecx, [rsi+4];"			# RCX = Module name string RVA
+" test rcx, rcx;"			# If RVA = 0, then all modules are processed
+" jz delayed_module_loop_end;"		# Exit the module loop
+" add rcx, rbx;"			# RCX = Module name
+" call r12;"				# Call LoadLibraryA
+" mov rcx, rax;"			# Module handle for GetProcAddress for 1st arg
+" xor r8, r8;"				
+" xor rdx, rdx;"
+" mov edx, [rsi+0x10];"			# EDX = INT RVA
+" add rdx, rbx;"			# RDX points to INT
+" mov r8d, [rsi+0xc];"			# R8 = IAT RVA
+" mov r8, rbx;"				# R8 points to IAT
+" mov r14, rdx;"			# Backup INT Address
+" mov r15, r8;"				# Backup IAT Address
+
+"loop_delayed_imported_function:"
+" mov rdx, r14;"			# Restore INT Address + processed data
+" mov r8, r15;"				# Restore IAT Address + processed data
+" mov rdx, [rdx];"			# RDX = Name Address RVA
+" test rdx, rdx;"			# If Name Address value is 0, then all functions are fixed
+" jz next_delayed_module;"		# Process next module
+" mov r9, 0x8000000000000000;"
+" test rdx, r9;"			# Check if it is import by ordinal (highest bit set of NameAddress)
+" mov rbp, rcx;"			# Save module base address
+" jnz resolve_delayed_by_ordinal;"	# If set, resolve by ordinal
+
+"resolve_delayed_by_name:"
+" add rdx, rbx;"			# RDX points to NameAddress Table
+" add rdx, 2;"				# RDX points to Function Name
+" call r13;"				# Call GetProcAddress
+" jmp update_delayed_iat;"		# Go to update IAT
+
+"resolve_delayed_by_ordinal:"
+" mov r9, 0x7fffffffffffffff;"
+" and rdx, r9;"				# RDX = Ordinal number
+" call r13;"				# Call GetProcAddress with ordinal
+
+
+"update_delayed_iat:"
+" mov rcx, rbp;"			# Restore module base address
+" mov r8, r15;"				# Restore current IAT address + processed
+" mov [r8], rax;"			# Write the resolved address to the IAT
+" add r15, 0x8;"			# Move to the next IAT entry (64-bit addresses)
+" add r14, 0x8;"			# Movce to the next INT entry
+" jmp loop_delayed_imported_function;"	# Repeat for the next function
+
+
+
+"next_delayed_module:"
+" add rsi, 0x20;"			# Move to next delayed imported module
+" jmp loop_delayed_module;"		# Continue loop
+
+
+"delayed_module_loop_end:"
+
 "fix_reloc:"				# Save RBX //dq rbx+21b0 l46
 " xor rsi, rsi;"
 " xor rdi, rdi;"
@@ -202,13 +269,14 @@ CODE = (
 " jmp loop_reloc_entries;"
 
 "next_block:"
-#" int3;"
 " add rsi, 2;"	
 " jmp loop_reloc_block;"
 
 "reloc_fixed_end:"
-" nop;"
 " sub rsp,8;"                   		# 
+" nop;"
+" nop;"
+" nop;"
 " nop;"
 " nop;"
 " nop;"
