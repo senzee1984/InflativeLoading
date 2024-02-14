@@ -148,10 +148,12 @@ CODE = (
 " xor rax, rax;"
 " mov eax, [rbx+0x3c];"			# EAX contains e_lfanew
 " add rax, rbx;"			# RAX points to NT Header
-" mov esi, [rax+0xe0];"			# ESI = DelayedImportDir RVA
+" mov esi, [rax+0xf0];"			# ESI = DelayedImportDir RVA
 " test esi, esi;"			# If RVA = 0?
 " jz fix_reloc;"			# Skip delay import table fix
 " add rsi, rbx;"			# RSI points to DelayedImportDir
+
+
 
 "loop_delayed_module:"
 " xor rcx, rcx;"			
@@ -166,7 +168,7 @@ CODE = (
 " mov edx, [rsi+0x10];"			# EDX = INT RVA
 " add rdx, rbx;"			# RDX points to INT
 " mov r8d, [rsi+0xc];"			# R8 = IAT RVA
-" mov r8, rbx;"				# R8 points to IAT
+" add r8, rbx;"				# R8 points to IAT
 " mov r14, rdx;"			# Backup INT Address
 " mov r15, r8;"				# Backup IAT Address
 
@@ -233,6 +235,9 @@ CODE = (
 " mov r9d, [rsi+4];"			# First block's size
 " xor rax, rax;"
 " xor rcx, rcx;"
+#" int3;"				# Have bug on sub [r8], r14
+" nop;"	
+
 
 "loop_reloc_block:"
 " cmp rsi, rdi;"          		# Compare current block with the end of BaseReloc
@@ -254,7 +259,7 @@ CODE = (
 " xor rax, rax;"
 " mov ax, [rsi];"			# RAX = Current entry value
 " test rax, rax;"			# If entry value is 0
-" jz next_block;"			# Reach the end of entry
+" jz skip_padding_entry;"		# Reach the end of entry and the last entry is a padding entry
 " mov r10, rax;"			# Copy entry value to R10
 " and eax, 0xfff;"			# Offset, 12 bits
 " shr r10d, 12;"			# Type value, 4 bits
@@ -268,20 +273,23 @@ CODE = (
 " add rsi, 2;"				# Move to next entry by adding 2 bytes
 " jmp loop_reloc_entries;"
 
+"skip_padding_entry:"			# If the last entry is a padding entry
+" add rsi, 2;"				# Directly skip this entry
+
 "next_block:"
-" add rsi, 2;"	
+" add rsi, 4;"				# Jump to the block size field of next block
 " jmp loop_reloc_block;"
 
 "reloc_fixed_end:"
 " sub rsp,8;"                   		# 
+#" nop;"
+#" nop;"
+#" nop;"
+#" nop;"
 " nop;"
 " nop;"
 " nop;"
-" nop;"
-" nop;"
-" nop;"
-" nop;"
-" nop;"
+#" nop;"
 " jmp r15;"
 )
 
