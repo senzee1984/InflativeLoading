@@ -30,3 +30,5 @@ Data successfully written to 'dumped.bin'
 ```
 
 ## InflativeLoading Script
+
+![image](/screenshot/mimikatz.png)
