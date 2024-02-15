@@ -1,6 +1,6 @@
 # InflativeLoading
 
-## ReadPEInMemory
+## ReadPEInMemory Project
 To avoid manual mapping of an exe, run this program to get a template of in-memory exe file.
 
 In this way, rather than manually map a file, we only need to patch specific area like IAT, BaseReloc section, etc.
@@ -29,4 +29,4 @@ Read 28672 bytes from Image Base Address
 Data successfully written to 'dumped.bin'
 ```
 
-## PrependedShellcodeStub
+## InflativeLoading Script
