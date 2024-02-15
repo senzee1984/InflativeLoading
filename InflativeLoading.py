@@ -224,13 +224,86 @@ f"lea rbx, [rip+{CODE_OFFSET}];"
 
 
 
+
+"fix_reloc:"				# Save RBX //dq rbx+21b0 l46
+" xor rsi, rsi;"
+" xor rdi, rdi;"
+" xor rax, rax;"
+" xor r8, r8;"				# Empty R8 to save page RVA
+" xor r9, r9;"				# Empty R9 to place block size
+" xor r15, r15;"
+" mov eax, [rbx+0x3c];"   		# EAX contains e_lfanew
+" add rax, rbx;"          		# RAX points to NT Header
+" mov esi, [rax+0xb0];"  		# ESI = BaseReloc RVA
+" add rsi, rbx;"         		# RSI points to BaseReloc
+" mov edi, [rax+0xb4];"   		# EDI = BaseReloc Size
+" add rdi, rsi;"          		# RDI = BaseReloc VA + Size
+" mov r15d, [rax+0x28];"		# R15 = Entry point RVA
+" add r15, rbx;"			# R15 = Entry point
+" mov r14, [rax+0x30];"			# R14 = Preferred address
+" sub r14, rbx;"			# R14 = Delta address 
+" mov [rax+0x30], rbx;"			# Update Image Base Address
+" mov r8d, [rsi];"			# R8 = First block page RVA
+" add r8, rbx;"				# R8 points to first block page (Should add an offset later)
+" mov r9d, [rsi+4];"			# First block's size
+" xor rax, rax;"
+" xor rcx, rcx;"
+
+"loop_reloc_block:"
+" cmp rsi, rdi;"          		# Compare current block with the end of BaseReloc
+" jge reloc_fixed_end;"    		# If equal, exit the loop
+" xor r8, r8;"
+" mov r8d, [rsi];"			# R8 = Current block's page RVA
+" add r8, rbx;"				# R8 points to current block page (Should add an offset later)
+" mov r11, r8;"				# Backup R8
+" xor r9, r9;"
+" mov r9d, [rsi+4];"			# R9 = Current block size
+" add rsi, 8;"				# RSI points to the 1st entry, index for inner loop for all entries
+" mov rdx, rsi;"
+" add rdx, r9;"
+" sub rdx, 8;"				# RDX = End of all entries in current block
+
+"loop_reloc_entries:"
+" cmp rsi, rdx;"			# If we reached the end of current block
+" jz next_block;"			# Move to next block
+" xor rax, rax;"
+" mov ax, [rsi];"			# RAX = Current entry value
+" test rax, rax;"			# If entry value is 0
+" jz skip_padding_entry;"		# Reach the end of entry and the last entry is a padding entry
+" mov r10, rax;"			# Copy entry value to R10
+" and eax, 0xfff;"			# Offset, 12 bits
+#" shr r10d, 12;"			# Type value, 4 bits
+" add r8, rax;"				# Added an offset
+
+
+
+"update_entry:"
+" sub [r8], r14;"			# Update the address
+" mov r8, r11;"				# Restore r8
+" add rsi, 2;"				# Move to next entry by adding 2 bytes
+" jmp loop_reloc_entries;"
+
+"skip_padding_entry:"			# If the last entry is a padding entry
+" add rsi, 2;"				# Directly skip this entry
+
+"next_block:"
+" jmp loop_reloc_block;"
+
+"reloc_fixed_end:"
+" sub rsp, 0x8;"			# Stack alignment
+
+
+
+
+
+
 "fix_delayed_iat:"
 " xor rax, rax;"
 " mov eax, [rbx+0x3c];"			# EAX contains e_lfanew
 " add rax, rbx;"			# RAX points to NT Header
 " mov esi, [rax+0xf0];"			# ESI = DelayedImportDir RVA
 " test esi, esi;"			# If RVA = 0?
-" jz fix_reloc;"			# Skip delay import table fix
+" jz delayed_module_loop_end;"		# Skip delay import table fix
 " add rsi, rbx;"			# RSI points to DelayedImportDir
 
 
@@ -289,73 +362,9 @@ f"lea rbx, [rip+{CODE_OFFSET}];"
 " jmp loop_delayed_module;"		# Continue loop
 
 "delayed_module_loop_end:"
-
-"fix_reloc:"				# Save RBX //dq rbx+21b0 l46
-" xor rsi, rsi;"
-" xor rdi, rdi;"
-" xor rax, rax;"
-" xor r8, r8;"				# Empty R8 to save page RVA
-" xor r9, r9;"				# Empty R9 to place block size
-" xor r15, r15;"
-" mov eax, [rbx+0x3c];"   		# EAX contains e_lfanew
-" add rax, rbx;"          		# RAX points to NT Header
-" mov esi, [rax+0xb0];"  		# ESI = BaseReloc RVA
-" add rsi, rbx;"         		# RSI points to BaseReloc
-" mov edi, [rax+0xb4];"   		# EDI = BaseReloc Size
-" add rdi, rsi;"          		# RDI = BaseReloc VA + Size
-" mov r15d, [rax+0x28];"		# R15 = Entry point RVA
-" add r15, rbx;"			# R15 = Entry point
-" mov r14, [rax+0x30];"			# R14 = Preferred address
-" sub r14, rbx;"			# R14 = Delta address 
-" mov [rax+0x30], rbx;"			# Update Image Base Address
-" mov r8d, [rsi];"			# R8 = First block page RVA
-" add r8, rbx;"				# R8 points to first block page (Should add an offset later)
-" mov r9d, [rsi+4];"			# First block's size
-" xor rax, rax;"
-" xor rcx, rcx;"
-
-"loop_reloc_block:"
-" cmp rsi, rdi;"          		# Compare current block with the end of BaseReloc
-" jge reloc_fixed_end;"    		# If equal, exit the loop
-" xor r8, r8;"
-" mov r8d, [rsi];"			# R8 = Current block's page RVA
-" add r8, rbx;"				# R8 points to current block page (Should add an offset later)
-" mov r11, r8;"				# Backup R8
-" xor r9, r9;"
-" mov r9d, [rsi+4];"			# R9 = Current block size
-" add rsi, 8;"				# RSI points to the 1st entry, index for inner loop for all entries
-" mov rdx, rsi;"
-" add rdx, r9;"
-" sub rdx, 8;"				# RDX = End of all entries in current block
-
-"loop_reloc_entries:"
-" cmp rsi, rdx;"			# If we reached the end of current block
-" jz next_block;"			# Move to next block
-" xor rax, rax;"
-" mov ax, [rsi];"			# RAX = Current entry value
-" test rax, rax;"			# If entry value is 0
-" jz skip_padding_entry;"		# Reach the end of entry and the last entry is a padding entry
-" mov r10, rax;"			# Copy entry value to R10
-" and eax, 0xfff;"			# Offset, 12 bits
-" shr r10d, 12;"			# Type value, 4 bits
-" add r8, rax;"				# Added an offset
+#" int3;"
 
 
-
-"update_entry:"
-" sub [r8], r14;"			# Update the address
-" mov r8, r11;"				# Restore r8
-" add rsi, 2;"				# Move to next entry by adding 2 bytes
-" jmp loop_reloc_entries;"
-
-"skip_padding_entry:"			# If the last entry is a padding entry
-" add rsi, 2;"				# Directly skip this entry
-
-"next_block:"
-" jmp loop_reloc_block;"
-
-"reloc_fixed_end:"
-" sub rsp, 0x8;"			# Stack alignment
 
 #"fix_tlscallbacks:"
 #" xor rax, rax;"
@@ -367,9 +376,26 @@ f"lea rbx, [rip+{CODE_OFFSET}];"
 #" add rsi, rbx;"			# RSI points to TLSDir
 #" mov r8, [rsi+0x18];"			# R8 = AddressOfCallBacks
 
+#"fix_exceptionhandler"
+#" xor rax, rax;"
+#" mov eax, [rbx+0x3c];"		# EAX contains e_lfanew
+#" add rax, rbx;"			# RAX points to NT Header
+#" mov esi, [rax+0xa0];"		# ESI = Exception Dir RVA
+#" test esi, esi;"			# If RVA = 0?
+#" jz all_completed;"			# Skip TLS table fix
+#" xor rdi, rdi;"
+#" mov edi, [rax+0xa4];"			# EDI = Exception Dir Size 
+#" add rsi, rbx;"			# RSI points to TLSDir
+#" mov r8, [rsi+0x18];"			# R8 = AddressOfCallBacks
 
-"all_completed:"    
-#" int3;"             		# 
+
+"all_completed:"        
+" xor rax, rax;"
+" xor r15, r15;"
+" mov eax, [rbx+0x3c];"   		# EAX contains e_lfanew
+" add rax, rbx;"          		# RAX points to NT Header
+" mov r15d, [rax+0x28];"		# R15 = Entry point RVA
+" add r15, rbx;"			# R15 = Entry point    		
 " jmp r15;"
 )
 
