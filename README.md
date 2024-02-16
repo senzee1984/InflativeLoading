@@ -55,7 +55,7 @@ For instance, use the script to read previously dumped mimikatz and supply prope
 
 # Known Issues
 1. Supplied command line does not always work properly.
-2. Does not work for GUI applications, like mspaint. But calc.exe works well.
+2. Does not work for GUI applications, like mspaint. But **calc.exe** works well.
 3. Does not work for packed applications.
 
 # Improvements In The Future
