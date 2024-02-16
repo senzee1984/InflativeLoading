@@ -75,6 +75,7 @@ if __name__ == "__main__":
 " xor rdx, rdx;"
 " mov rax, gs:[rdx+0x60];"		# RAX = PEB Address
 
+
 "update_cmdline:"
 f"{update_cmdline_asm}"
 
@@ -86,6 +87,7 @@ f"{update_cmdline_asm}"
 " mov r9, [r9];"			# ntdll.dll
 " mov r9, [r9+0x10];"			# kernel32.dll
 " jmp function_stub;"			# Jump to func call stub
+
 
 "parse_module:"				# Parsing DLL file in memory
 " mov ecx, dword ptr [r9 + 0x3c];"	# R9 = Base address of the module, ECX = NT header offset
@@ -99,6 +101,7 @@ f"{update_cmdline_asm}"
 " mov r14d, dword ptr [r15 + 0x20];"	# R14 = RVA of ENPT
 " add r14, r9;"				# R14 = VA of ENPT
 
+
 "search_function:"			# Search for a given function
 " jrcxz not_found;"			# If RCX = 0, the given function is not found
 " dec ecx;"				# Decrease index by 1
@@ -106,10 +109,12 @@ f"{update_cmdline_asm}"
 " mov esi, [r14 + rcx*4];"		# RVA of function name
 " add rsi, r9;"				# RSI points to function name string
 
+
 "function_hashing:"			# Hash function name function
 " xor rax, rax;"
 " xor rdx, rdx;"
 " cld;"					# Clear DF flag
+
 
 "iteration:"				# Iterate over each byte
 " lodsb;"				# Copy the next byte of RSI to Al
@@ -118,6 +123,7 @@ f"{update_cmdline_asm}"
 " ror edx, 0x0d;"			# Part of hash algorithm
 " add edx, eax;"			# Part of hash algorithm
 " jmp iteration;"			# Next byte
+
 
 "compare_hash:"				# Compare hash
 " cmp edx, r8d;"			# R8 = Supplied function hash
@@ -134,6 +140,7 @@ f"{update_cmdline_asm}"
 " xor rax, rax;"			# Return zero
 " ret;"
 
+
 "function_stub:"			# Achieve PIC and elminiate 0x00 byte
 " mov rbp, r9;"				# RBP stores base address of Kernel32.dll
 " mov r8d, 0xec0e4e8e;"			# LoadLibraryA Hash
@@ -147,18 +154,25 @@ f"{update_cmdline_asm}"
 
     ks = Ks(KS_ARCH_X86, KS_MODE_64)
     encoding, count = ks.asm(CODE)
-    CODE_LEN = len(encoding) + 13    
+    CODE_LEN = len(encoding) + 25     
     CODE_OFFSET = 4096 - CODE_LEN
 
-
     CODE2 = (
+" jmp fix_iat;"				# Jump to fix_iat section
+
+
+"find_nt_header:"
+" xor rax, rax;"
+" mov eax, [rbx+0x3c];"   		# EAX contains e_lfanew
+" add rax, rbx;"          		# RAX points to NT Header
+" ret;"					# Return
+
+
 "fix_iat:"  				# Init necessary variable for fixing IAT
 " xor rsi, rsi;"
 " xor rdi, rdi;"
 f"lea rbx, [rip+{CODE_OFFSET}];"
-" xor rax, rax;"
-" mov eax, [rbx+0x3c];"   		# EAX contains e_lfanew
-" add rax, rbx;"          		# RAX points to NT Header
+" call find_nt_header;"
 " mov esi, [rax+0x90];"  		# ESI = ImportDir RVA
 " add rsi, rbx;"         		# RSI points to ImportDir
 " mov edi, [rax+0x94];"   		# EDI = ImportDir Size
@@ -186,6 +200,7 @@ f"lea rbx, [rip+{CODE_OFFSET}];"
 " mov r14, rdx;"			# Backup ILT Address
 " mov r15, r8;"				# Backup IAT Address
 
+
 "loop_imported_func:"
 " mov rdx, r14;"			# Restore ILT address + processed entries
 " mov r8, r15;"				# Restore IAT Address + processed entries
@@ -197,16 +212,19 @@ f"lea rbx, [rip+{CODE_OFFSET}];"
 " mov rbp, rcx;"			# Save module base address
 " jnz resolve_by_ordinal;"		# If set, resolve by ordinal
 
+
 "resolve_by_name:"
 " add rdx, rbx;"          		# RDX = HintName Table VA
 " add rdx, 2;"		  		# RDX points to Function Name
 " call r13;"              		# Call GetProcAddress
 " jmp update_iat;"        		# Go to update IAT
 
+
 "resolve_by_ordinal:"
 " mov r9, 0x7fffffffffffffff;"
 " and rdx, r9;"			   	# RDX = Ordinal number
 " call r13;"              		# Call GetProcAddress with ordinal
+
 
 "update_iat:"
 " mov rcx, rbp;"          		# Restore module base address
@@ -216,9 +234,11 @@ f"lea rbx, [rip+{CODE_OFFSET}];"
 " add r14, 0x8;"		  	# Movce to the next ILT entry
 " jmp loop_imported_func;"		# Repeat for the next function
 
+
 "next_descriptor:"
 " add rsi, 0x14;"         		# Move to next import descriptor
 " jmp loop_imported_module;"  		# Continue loop
+
 
 "module_loop_end:"
 
@@ -228,12 +248,10 @@ f"lea rbx, [rip+{CODE_OFFSET}];"
 "fix_reloc:"				# Save RBX //dq rbx+21b0 l46
 " xor rsi, rsi;"
 " xor rdi, rdi;"
-" xor rax, rax;"
 " xor r8, r8;"				# Empty R8 to save page RVA
 " xor r9, r9;"				# Empty R9 to place block size
 " xor r15, r15;"
-" mov eax, [rbx+0x3c];"   		# EAX contains e_lfanew
-" add rax, rbx;"          		# RAX points to NT Header
+" call find_nt_header;"
 " mov esi, [rax+0xb0];"  		# ESI = BaseReloc RVA
 " add rsi, rbx;"         		# RSI points to BaseReloc
 " mov edi, [rax+0xb4];"   		# EDI = BaseReloc Size
@@ -249,6 +267,7 @@ f"lea rbx, [rip+{CODE_OFFSET}];"
 " xor rax, rax;"
 " xor rcx, rcx;"
 
+
 "loop_reloc_block:"
 " cmp rsi, rdi;"          		# Compare current block with the end of BaseReloc
 " jge reloc_fixed_end;"    		# If equal, exit the loop
@@ -263,6 +282,7 @@ f"lea rbx, [rip+{CODE_OFFSET}];"
 " add rdx, r9;"
 " sub rdx, 8;"				# RDX = End of all entries in current block
 
+
 "loop_reloc_entries:"
 " cmp rsi, rdx;"			# If we reached the end of current block
 " jz next_block;"			# Move to next block
@@ -272,9 +292,7 @@ f"lea rbx, [rip+{CODE_OFFSET}];"
 " jz skip_padding_entry;"		# Reach the end of entry and the last entry is a padding entry
 " mov r10, rax;"			# Copy entry value to R10
 " and eax, 0xfff;"			# Offset, 12 bits
-#" shr r10d, 12;"			# Type value, 4 bits
 " add r8, rax;"				# Added an offset
-
 
 
 "update_entry:"
@@ -283,11 +301,14 @@ f"lea rbx, [rip+{CODE_OFFSET}];"
 " add rsi, 2;"				# Move to next entry by adding 2 bytes
 " jmp loop_reloc_entries;"
 
+
 "skip_padding_entry:"			# If the last entry is a padding entry
 " add rsi, 2;"				# Directly skip this entry
 
+
 "next_block:"
 " jmp loop_reloc_block;"
+
 
 "reloc_fixed_end:"
 " sub rsp, 0x8;"			# Stack alignment
@@ -295,17 +316,12 @@ f"lea rbx, [rip+{CODE_OFFSET}];"
 
 
 
-
-
 "fix_delayed_iat:"
-" xor rax, rax;"
-" mov eax, [rbx+0x3c];"			# EAX contains e_lfanew
-" add rax, rbx;"			# RAX points to NT Header
+" call find_nt_header;"
 " mov esi, [rax+0xf0];"			# ESI = DelayedImportDir RVA
 " test esi, esi;"			# If RVA = 0?
 " jz delayed_module_loop_end;"		# Skip delay import table fix
 " add rsi, rbx;"			# RSI points to DelayedImportDir
-
 
 
 "loop_delayed_module:"
@@ -325,6 +341,7 @@ f"lea rbx, [rip+{CODE_OFFSET}];"
 " mov r14, rdx;"			# Backup INT Address
 " mov r15, r8;"				# Backup IAT Address
 
+
 "loop_delayed_imported_function:"
 " mov rdx, r14;"			# Restore INT Address + processed data
 " mov r8, r15;"				# Restore IAT Address + processed data
@@ -336,16 +353,19 @@ f"lea rbx, [rip+{CODE_OFFSET}];"
 " mov rbp, rcx;"			# Save module base address
 " jnz resolve_delayed_by_ordinal;"	# If set, resolve by ordinal
 
+
 "resolve_delayed_by_name:"
 " add rdx, rbx;"			# RDX points to NameAddress Table
 " add rdx, 2;"				# RDX points to Function Name
 " call r13;"				# Call GetProcAddress
 " jmp update_delayed_iat;"		# Go to update IAT
 
+
 "resolve_delayed_by_ordinal:"
 " mov r9, 0x7fffffffffffffff;"
 " and rdx, r9;"				# RDX = Ordinal number
 " call r13;"				# Call GetProcAddress with ordinal
+
 
 "update_delayed_iat:"
 " mov rcx, rbp;"			# Restore module base address
@@ -356,44 +376,17 @@ f"lea rbx, [rip+{CODE_OFFSET}];"
 " jmp loop_delayed_imported_function;"	# Repeat for the next function
 
 
-
 "next_delayed_module:"
 " add rsi, 0x20;"			# Move to next delayed imported module
 " jmp loop_delayed_module;"		# Continue loop
 
+
 "delayed_module_loop_end:"
-#" int3;"
-
-
-
-#"fix_tlscallbacks:"
-#" xor rax, rax;"
-#" mov eax, [rbx+0x3c];"		# EAX contains e_lfanew
-#" add rax, rbx;"			# RAX points to NT Header
-#" mov esi, [rax+0xd0];"		# ESI = TLS Table RVA
-#" test esi, esi;"			# If RVA = 0?
-#" jz all_completed;"			# Skip TLS table fix
-#" add rsi, rbx;"			# RSI points to TLSDir
-#" mov r8, [rsi+0x18];"			# R8 = AddressOfCallBacks
-
-#"fix_exceptionhandler"
-#" xor rax, rax;"
-#" mov eax, [rbx+0x3c];"		# EAX contains e_lfanew
-#" add rax, rbx;"			# RAX points to NT Header
-#" mov esi, [rax+0xa0];"		# ESI = Exception Dir RVA
-#" test esi, esi;"			# If RVA = 0?
-#" jz all_completed;"			# Skip TLS table fix
-#" xor rdi, rdi;"
-#" mov edi, [rax+0xa4];"			# EDI = Exception Dir Size 
-#" add rsi, rbx;"			# RSI points to TLSDir
-#" mov r8, [rsi+0x18];"			# R8 = AddressOfCallBacks
 
 
 "all_completed:"        
-" xor rax, rax;"
+" call find_nt_header;"
 " xor r15, r15;"
-" mov eax, [rbx+0x3c];"   		# EAX contains e_lfanew
-" add rax, rbx;"          		# RAX points to NT Header
 " mov r15d, [rax+0x28];"		# R15 = Entry point RVA
 " add r15, rbx;"			# R15 = Entry point    		
 " jmp r15;"
