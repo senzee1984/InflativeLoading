@@ -7,7 +7,9 @@ Motivated and inspired by some classic and modern tools and techniques, Inflativ
 
 The tool consists of two components: `DumpPEFromMemory.exe` and `InflativeLoading.py`.
 
-## DumpPEFromMemory Project
+## Included Tools
+
+### DumpPEFromMemory Project
 
 DumpPEFromMemory.exe is used to get the in-memory version of the selected PE file. It works by creating a process in suspended state and dumping the main module into a binary file (on your dev machine).
 
@@ -41,7 +43,7 @@ Image Base Address:00007FF69AA80000
 Data successfully written to mimi.bin. Total bytes read: 0x137000
 ```
 
-## InflativeLoading Script
+### InflativeLoading Script
 The script dynamically generates a shellcode stub and appends it to the dump file. 
 
 The shellcode completes the following tasks:
@@ -57,8 +59,21 @@ For instance, use the script to read previously dumped mimikatz and supply prope
 
 ![image](/screenshot/logonpasswords.jpg)
 
+Though the shellcode stub should be less than 1000 bytes typically, the script still pads the shellcode stub to **4096 bytes** for alignment with memory page boundary. Then the operator can easily set proper page permission for different memory regions.
 
-# Known Issues
+
+## Capabilities
+:heavy_check_mark: Support for normal native EXE
+
+:heavy_check_mark: Support for Delayed Import Directory
+
+:heavy_check_mark: Fix IAT
+
+:heavy_check_mark: Fix Base Relocation Directory
+
+:heavy_check_mark: Tests passed with classic programs like calc, mimikatz, PsExec, etc. 
+
+## Known Issues
 :confused: Supplied command line does not always work properly.
 
 :pensive: Does not work for GUI applications, like mspaint. But **calc.exe** works well.
@@ -67,7 +82,7 @@ For instance, use the script to read previously dumped mimikatz and supply prope
 
 :warning: Only support **x64**, and I do not plan to add support for x86 programs.
 
-# Improvements In The Future
+## Improvements In The Future
 :bell: Add a loader for .NET program.
 
 :smirk: Add support for DLL and export functions.
@@ -76,7 +91,7 @@ For instance, use the script to read previously dumped mimikatz and supply prope
 
 :flushed: Improve existing shitty code : )
 
-# Acknowledgements and References
+## Acknowledgements and References
 The following resources inspired me a lot during my research and development:
 
 <https://github.com/TheWover/donut>
