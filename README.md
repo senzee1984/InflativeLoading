@@ -1,5 +1,10 @@
 # InflativeLoading
 
+## Background
+Converting an exe to shellcode for flexibility was one of my goals, though some tools like **Donut** already achieved it, I still want to create such a tool with my approach, and hopefully, it can bring some improvements.
+
+Motivated and inspired by some classic and modern tools and techniques, InflativeLoading is a tool that can dynamically convert a native EXE to PIC shellcode.
+
 The tool consists of two components: `DumpPEFromMemory.exe` and `InflativeLoading.py`.
 
 ## DumpPEFromMemory Project
@@ -54,17 +59,26 @@ For instance, use the script to read previously dumped mimikatz and supply prope
 
 
 # Known Issues
-1. Supplied command line does not always work properly.
-2. Does not work for GUI applications, like mspaint. But **calc.exe** works well.
-3. Does not work for packed applications.
+:confused: Supplied command line does not always work properly.
+
+:pensive: Does not work for GUI applications, like mspaint. But **calc.exe** works well.
+
+:no_entry_sign: Does not work for packed applications.
+
+:warning: Only support **x64**, and I do not plan to add support for x86 programs.
 
 # Improvements In The Future
-1. Add a loader for .NET program.
-2. Add support for DLL and export functions.
-3. Add support for more complex PE files.
-4. Improve my shitty code : )
+:bell: Add a loader for .NET program.
 
-# References
+:smirk: Add support for DLL and export functions.
+
+:relaxed:Add support for more complex PE files.
+
+:flushed: Improve existing shitty code : )
+
+# Acknowledgements and References
+The following resources inspired me a lot during my research and development:
+
 <https://github.com/TheWover/donut>
 
 <https://github.com/d35ha/PE2Shellcode>
