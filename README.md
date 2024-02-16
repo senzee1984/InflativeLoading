@@ -9,6 +9,7 @@ ReadPEInMemory.exe is used to get the in-memory version of the selected PE file.
 Why? A typical reflective loading process maps each section of a PE file into a newly allocated memory region. Regarding this, I have two concerns: Firstly, although the data of each section is fundamentally consistent whether it resides on disk or in memory, there might still be certain differences for special PE files or under specific circumstances. 
 
 ```c
+// Code snippet from Maldev course
 for (int i = 0; i < pPeHdrs->pImgNtHdrs->FileHeader.NumberOfSections; i++) {
 	memcpy(
 		(PVOID)(pPeBaseAddress + pPeHdrs->pImgSecHdr[i].VirtualAddress),			// Distination: pPeBaseAddress + RVA
@@ -62,3 +63,18 @@ For instance, use the script to read previously dumped mimikatz and supply prope
 2. Add support for DLL and export functions.
 3. Add support for more complex PE files.
 4. Improve my shitty code : )
+
+# References
+<https://github.com/TheWover/donut>
+
+<https://github.com/d35ha/PE2Shellcode>
+
+<https://github.com/hasherezade/pe_to_shellcode>
+
+<https://github.com/monoxgas/sRDI>
+
+<https://github.com/stephenfewer/ReflectiveDLLInjection>
+
+<https://securityintelligence.com/x-force/defining-cobalt-strike-reflective-loader/>
+
+<https://maldevacademy.com/>
