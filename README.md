@@ -19,4 +19,4 @@ Data successfully written to mimi.bin. Total bytes read: 0x137000
 
 ## InflativeLoading Script
 
-![image](/screenshot/mimikatz.png)
+![image](/screenshot/logonpasswords.jpg)
