@@ -5,6 +5,8 @@ Converting an exe to shellcode is one of my goals, in this way, some security to
 
 Motivated and inspired by some classic and modern tools and techniques, InflativeLoading is a tool that can dynamically convert a native EXE to PIC shellcode.
 
+**In short, InflativeLoading generates and appends a shellcode stub to a dumped PE main module.**
+
 The tool consists of two components: `DumpPEFromMemory.exe` and `InflativeLoading.py`.
 
 ## Included Components
