@@ -130,7 +130,7 @@ The specified resource type cannot be found in the image file.
 ## Test Cases
 | Program | Has GUI? | Supplied Arguments?| Successful Execution | Execute Properly w Arguments |
 | ----------- | ----------- |----------- | ----------- |----------- | 
-| Simple custom C/C++ program     | No | No  |:heavy_check_mark: | N/A |
+| Simple custom C/C++ programs     | No | No  |:heavy_check_mark: | N/A |
 | calc.exe     | No | No |:heavy_check_mark: |N/A |
 | mimikatz.exe  | No | Yes   |:heavy_check_mark: |:heavy_check_mark: |
 | PsExec  | No     |Yes |:heavy_check_mark: |:no_entry_sign:|
