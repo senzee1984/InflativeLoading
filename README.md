@@ -1,13 +1,14 @@
 # InflativeLoading
 
 ## Background
-Converting an exe to shellcode for flexibility was one of my goals, though some tools like **Donut** already achieved it, I still want to create such a tool with my approach, and hopefully, it can bring some improvements.
+Converting an exe to shellcode is one of my goals, in this way, some security tools like Mimikatz can be used with more flexibility. Though some tools like **Donut** already achieved it, I still want to create such a tool with my approach, and hopefully, it can bring some improvements.
 
 Motivated and inspired by some classic and modern tools and techniques, InflativeLoading is a tool that can dynamically convert a native EXE to PIC shellcode.
 
 The tool consists of two components: `DumpPEFromMemory.exe` and `InflativeLoading.py`.
 
-## Included Tools
+## Included Components
+To convert a native EXE to shellcode, the following 2 components are required.
 
 ### DumpPEFromMemory Project
 
@@ -62,34 +63,79 @@ For instance, use the script to read previously dumped mimikatz and supply prope
 Though the shellcode stub should be less than 1000 bytes typically, the script still pads the shellcode stub to **4096 bytes** for alignment with memory page boundary. Then the operator can easily set proper page permission for different memory regions.
 
 
+## How To Use?
+I believe you already went through both components of InflativeLoading, in summary:
+
+1. Use DumpPEFromMemory.exe to select a native EXE, and then dump the PE main module from memory into a bin file. Regarding the selection of EXE files, please refer to `Best Use Cases` and `Know Issues or Limitations` section.
+2. Use InflativeLoading.py script to add a shellcode stub for the dump file. You can choose to provide command line and whether to execute generated shellcode immediately. **Currently, user-supplied command line only works properly for a small set of programs**.
+
+
+## Best Use Cases
+Because InflativeLoading is in its early stage, not every exe is supported well
+
+:white_check_mark: Native console program that does not rely on arguments, like custom C programs
+
+:white_check_mark: Native console program that has an interactive console/shell, like Mimikatz.
+
+
 ## Capabilities
-:heavy_check_mark: Support for normal native EXE
 
-:heavy_check_mark: Support for Delayed Import Directory
+:ballot_box_with_check: Support for normal native EXE
 
-:heavy_check_mark: Fix IAT
+:ballot_box_with_check: Support for Delayed Import Directory
 
-:heavy_check_mark: Fix Base Relocation Directory
+:ballot_box_with_check: Fix IAT
 
-:heavy_check_mark: Tests passed with classic programs like calc, mimikatz, PsExec, etc. 
+:ballot_box_with_check: Fix Base Relocation Directory
 
-## Known Issues
-:confused: Supplied command line does not always work properly.
+:ballot_box_with_check: Tests passed with classic programs like calc, mimikatz, PsExec, etc. 
 
-:pensive: Does not work for GUI applications, like mspaint. But **calc.exe** works well.
+## Known Issues or Limitations
+:warning: Some of following issues may be fixed in the future, while some of them remain out of scope due to the nature.
 
-:no_entry_sign: Does not work for packed applications.
++ Supplied command line does not always work properly. **It is a major area that I will be focusing on**.
 
-:warning: Only support **x64**, and I do not plan to add support for x86 programs.
++ Does not work for GUI programs, like mspaint.exe. But **calc.exe** works well.
+
++ Does not work for packed programs.
+
++ Does not work for programs that require other dependencies, like custom DLLs.
+
++ Only support **x64**, and I do not plan to add support for x86 programs.
+
+If you encounter any of the above issues or limitations, the execution of shellcode may crash, or the shellcoded EXE cannot properly identify the command line, or no response.
+
+For instance, PsExec.exe can be converted to PIC shellcode, however, user-supplied command line cannot be identified properly.
+```cmd
+C:\Users\Administrator\Desktop\VTF\poc\peshellcodify>python InflativeLoading.py -b psexec.bin -c "-s -i powershell" -e true -o psexec_merged.bin
+
+<...SNIP...>
+
+Generated shellcode successfully saved in file psexec_merged.bin
+
+[#] Shellcode located at address 0x27159360000
+
+[!] PRESS TO EXECUTE SHELLCODED EXE...
+
+Python Console v3.12.2 - Python
+Copyright  2001-2023 Python Software Foundation. Copyright  2000 BeOpen.com. Copyright  1995-2001 CNRI. Copyright  1991-1995 SMC.
+Python Software Foundation
+
+Couldn't install PSEXESVC service:
+The specified resource type cannot be found in the image file.
+```
+
 
 ## Improvements In The Future
-:bell: Add a loader for .NET program.
+:bell: The following features and improvements are expected in the future.
 
-:smirk: Add support for DLL and export functions.
++ Add a loader for .NET program.
 
-:relaxed:Add support for more complex PE files.
++ Add support for DLL and export functions.
 
-:flushed: Improve existing shitty code : )
++ :Add support for more complex PE files.
+
++ Improve existing shitty code : )
 
 ## Acknowledgements and References
 The following resources inspired me a lot during my research and development:
