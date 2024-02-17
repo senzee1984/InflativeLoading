@@ -166,6 +166,10 @@ int main(int argc, char* argv[])
 		printf("Error");
 	}
 
-	TerminateProcess(pi.hProcess, 0);
+	if (!TerminateProcess(pi.hProcess, 0)) {
+		printf("TerminateProcess failed (%d).\n", GetLastError());
+		return 1;
+	}
+
 	return 0;
 }
