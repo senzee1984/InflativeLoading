@@ -131,10 +131,10 @@ The specified resource type cannot be found in the image file.
 | Program | Has GUI? | Supplied Arguments?| Successful Execution | Execute Properly w Arguments |
 | ----------- | ----------- |----------- | ----------- |----------- | 
 | Simple custom C/C++ programs     | No | No  |:heavy_check_mark: | N/A |
-| calc.exe     | No | No |:heavy_check_mark: |N/A |
+| calc.exe     | Yes | No |:heavy_check_mark: |N/A |
 | mimikatz.exe  | No | Yes   |:heavy_check_mark: |:heavy_check_mark: |
 | PsExec  | No     |Yes |:heavy_check_mark: |:no_entry_sign:|
-| mspaint.exe  | No     |No | :no_entry_sign: |N/A|
+| mspaint.exe  | Yes     |No | :no_entry_sign: |N/A|
 | Packed Programs  | No     |No | :no_entry_sign: |:no_entry_sign:|
 
 Dumped versions of calc.exe and mimikatz.exe can be found in the `bin/` folder of the repository. 
