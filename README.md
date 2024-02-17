@@ -109,7 +109,7 @@ If you encounter any of the above issues or limitations, the execution of shellc
 
 For instance, PsExec.exe can be converted to PIC shellcode, however, user-supplied command line cannot be identified properly.
 ```cmd
-C:\Users\Administrator\Desktop\VTF\poc\peshellcodify>python InflativeLoading.py -b psexec.bin -c "-s -i powershell" -e true -o psexec_merged.bin
+C:\Users\<...SNIP>\>python InflativeLoading.py -b psexec.bin -c "-s -i powershell" -e true -o psexec_merged.bin
 
 <...SNIP...>
 
