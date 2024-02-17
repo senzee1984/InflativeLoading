@@ -37,7 +37,7 @@ The dumped main module will be saved as a binary file to append to the shellcode
 
 For instance, DumpPEFromMemory executes a classic tool mimikatz, and dumps its main module into a binary file.
 ```shell
-PS C:\Users\Administrator\Desktop\petosc\project> .\DumpPEFromMemory.exe .\mimikatz.exe mimi.bin
+PS C:\Users\<...SNIP...>> .\DumpPEFromMemory.exe .\mimikatz.exe mimi.bin
 [+] DONE
 [+] Size Of The Image : 0x137000
 Process PID: 12512
