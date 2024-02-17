@@ -129,13 +129,13 @@ The specified resource type cannot be found in the image file.
 ## Improvements In The Future
 :bell: The following features and improvements are expected in the future.
 
-+ Add a loader for .NET program.
++ A separate loader for .NET program.
 
 + Add support for DLL and export functions.
 
-+ :Add support for more complex PE files.
++ Add support for more complex PE files, like packed programs.
 
-+ Improve existing shitty code : )
++ Improve the shitty code : )
 
 ## Acknowledgements and References
 The following resources inspired me a lot during my research and development:
