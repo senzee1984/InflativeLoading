@@ -69,7 +69,7 @@ Though the shellcode stub should be less than 1000 bytes typically, the script s
 I believe you already went through both components of InflativeLoading, in summary:
 
 1. Use DumpPEFromMemory.exe to select a native EXE, and then dump the PE main module from memory into a bin file. Regarding the selection of EXE files, please refer to `Best Use Cases` and `Know Issues or Limitations` section.
-2. Use InflativeLoading.py script to add a shellcode stub for the dump file. You can choose to provide command line and whether to execute generated shellcode immediately. **Currently, user-supplied command line only works properly for a small set of programs**.
+2. Use InflativeLoading.py script to append a shellcode stub for the dump file. You can choose to provide command line and whether to execute generated shellcode immediately. **Currently, user-supplied command line only works properly for a small set of programs**.
 
 
 ## Best Use Cases
