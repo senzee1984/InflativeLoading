@@ -127,6 +127,18 @@ Couldn't install PSEXESVC service:
 The specified resource type cannot be found in the image file.
 ```
 
+## Test Cases
+| Program | Has GUI? | Supplied Arguments?| Successful Execution | Execute Properly w Arguments |
+| ----------- | ----------- |----------- | ----------- |----------- | 
+| Simple custom C/C++ program     | No | No  |:heavy_check_mark: | N/A |
+| calc.exe     | No | No |:heavy_check_mark: |N/A |
+| mimikatz.exe  | No | Yes   |:heavy_check_mark: |:heavy_check_mark: |
+| PsExec  | No     |Yes |:heavy_check_mark: |:no_entry_sign:|
+| mspaint.exe  | No     |No | :no_entry_sign: |N/A|
+| Packed Programs  | No     |No | :no_entry_sign: |:no_entry_sign:|
+
+Dumped versions of calc.exe and mimikatz.exe can be found in the `bin/` folder of the repository. 
+
 
 ## Improvements In The Future
 :bell: The following features and improvements are expected in the future.
