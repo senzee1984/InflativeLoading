@@ -71,7 +71,7 @@ I believe you already went through both components of InflativeLoading, in summa
 
 
 ## Best Use Cases
-Because InflativeLoading is in its early stage, not every exe is supported well
+Because InflativeLoading is in its early stage, not every exe is supported well.
 
 :white_check_mark: Native console program that does not rely on arguments, like custom C programs
 
@@ -82,7 +82,7 @@ Because InflativeLoading is in its early stage, not every exe is supported well
 
 :ballot_box_with_check: Support for normal native EXE
 
-:ballot_box_with_check: Support for Delayed Import Directory
+:ballot_box_with_check: Support for EXE that has Delayed Import Directory
 
 :ballot_box_with_check: Fix IAT
 
