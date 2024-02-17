@@ -185,7 +185,7 @@ f"{update_cmdline_asm}"
     CODE_OFFSET = 4096 - CODE_LEN
 
     CODE2 = (
-" jmp fix_import_dir;"			# Jump to fix_iat section
+" jmp fix_import_dir;"			# Jump to fix_import_dir section
 
 
 "find_nt_header:"			# Quickly return NT header in RAX
