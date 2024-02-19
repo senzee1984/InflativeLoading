@@ -1,7 +1,29 @@
 # InflativeLoading
-## Major Update Logs
+
+## Major Update History
+In this section, major updates are provided. Major updates do include added supports or features.
 
 ### Added Basic Support For UPX Packed EXE
+I slightly modified the code that fixes IAT, because I found some lines of code are unnecessary. After this, InflativeLoading can execute **some UPX packed EXE programs**, including **calc.exe**, **PsExec**. However, only some of packed programs. Firstly, I am not likely to test all possible packing configurations for all tested programs. For the second reason, please continue to read:
+
+For programs that do not have `delayed import directory`, InflativeLoading can execute UPX-packed versions of them. However, unlike unpacked programs, packed programs have all ILT empty.
+
+Take normal calc.exe as an example, ILT and IAT are identical for all modules.
+![image](/screenshot/calc_pebear.jpg)
+
+But for the UPX packed calc.exe, ILT is empty for all entries in Import Directory.
+![image](/screenshot/packed_calc.jpg)
+
+But if the program has delayed import directory, like Mimikatz, it gets more complex.
+
+For the normal mimikatz.exe, the delayed import directory is as follows:
+![image](/screenshot/mimikatz_pebear.jpg)
+
+But for the UPX packed mimikatz.exe, PE Bear is unable to parse it, so do I.
+![image](/screenshot/packed_mimikatz.jpg)
+
+
+
 
 
 ## Background
