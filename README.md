@@ -17,7 +17,7 @@ But for the UPX packed calc.exe, ILT is empty for all entries in Import Director
 But if the program has delayed import directory, like Mimikatz, it gets more complex.
 
 For the normal mimikatz.exe, the delayed import directory is as follows:
-![image](/screenshot/mimikatz_pebear.jpg)
+![image](/screenshot/mimikat_pebear.jpg)
 
 But for the UPX packed mimikatz.exe, PE Bear is unable to parse it, so do I.
 ![image](/screenshot/packed_mimikatz.jpg)
