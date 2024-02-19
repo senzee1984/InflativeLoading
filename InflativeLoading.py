@@ -210,7 +210,7 @@ f"lea rbx, [rip+{CODE_OFFSET}];"	# Jump to the dump file
 " cmp rsi, rdi;"          		# Compare current descriptor with the end of import directory
 " je loop_end;"		    		# If equal, exit the loop
 " xor rdx ,rdx;"
-" mov edx, [rsi];"        		# EDX = ILT RVA (32-bit)
+" mov edx, [rsi+0x10];"        		# EDX = IAT RVA (32-bit)
 " test rdx, rdx;"         		# Check if ILT RVA is zero (end of descriptors)
 " je loop_end;"		    		# If zero, exit the loop
 " xor rcx, rcx;"
@@ -218,21 +218,16 @@ f"lea rbx, [rip+{CODE_OFFSET}];"	# Jump to the dump file
 " add rcx, rbx;"          		# RCX points to Module Name
 " call r12;"              		# Call LoadLibraryA
 " xor rdx ,rdx;"			
-" mov edx, [rsi];"        		# Restore ILT RVA
-" add rdx, rbx;"          		# RDX points to ILT
-" xor r8, r8;"				
-" mov r8d, [rsi+0x10];"   		# R8 = IAT RVA	
-" add r8, rbx;"           		# R8 points to IAT
+" mov edx, [rsi+0x10];"        		# Restore IAT RVA
+" add rdx, rbx;"          		# RDX points to IAT
 " mov rcx, rax;"          		# Module handle for GetProcAddress
-" mov r14, rdx;"			# Backup ILT Address
-" mov r15, r8;"				# Backup IAT Address
+" mov r14, rdx;"			# Backup IAT Address
 
 
 "loop_func:"
-" mov rdx, r14;"			# Restore ILT address + processed entries
-" mov r8, r15;"				# Restore IAT Address + processed entries
+" mov rdx, r14;"			# Restore IAT address + processed entries
 " mov rdx, [rdx];"        		# RDX = Ordinal or RVA of HintName Table
-" test rdx, rdx;"         		# Check if it's the end of the ILT/IAT
+" test rdx, rdx;"         		# Check if it's the end of the IAT
 " je next_module;"	    		# If zero, move to the next descriptor
 " mov r9, 0x8000000000000000;"
 " test rdx, r9;"  			# Check if it is import by ordinal (highest bit set)
@@ -255,9 +250,8 @@ f"lea rbx, [rip+{CODE_OFFSET}];"	# Jump to the dump file
 
 "update_iat:"
 " mov rcx, rbp;"          		# Restore module base address
-" mov r8, r15;"				# Restore IAT Address + processed entries
-" mov [r8], rax;"         		# Write the resolved address to the IAT
-" add r15, 0x8;"             		# Move to the next IAT entry (64-bit addresses)
+" mov rdx, r14;"				# Restore IAT Address + processed entries
+" mov [rdx], rax;"         		# Write the resolved address to the IAT
 " add r14, 0x8;"		  	# Movce to the next ILT entry
 " jmp loop_func;"			# Repeat for the next function
 
