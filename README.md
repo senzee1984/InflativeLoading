@@ -1,4 +1,8 @@
 # InflativeLoading
+## Major Update Logs
+
+### Added Basic Support For UPX Packed EXE
+
 
 ## Background
 Converting an exe to shellcode is one of my goals, in this way, some security tools like Mimikatz can be used with more flexibility. Though some tools like **Donut** already achieved it, I still want to create such a tool with my approach, and hopefully, it can bring some improvements.
