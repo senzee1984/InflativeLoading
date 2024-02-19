@@ -22,8 +22,8 @@ For the normal mimikatz.exe, the delayed import directory is as follows:
 But for the UPX packed mimikatz.exe, PE Bear is unable to parse it, so do I.
 ![image](/screenshot/packed_mimikatz.jpg)
 
-
-
+The below is a passed test case for UPX-packed calc.exe.
+![image](/screenshot/packed_calc_test.jpg)
 
 
 ## Background
