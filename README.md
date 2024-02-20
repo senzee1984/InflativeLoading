@@ -73,7 +73,7 @@ Data successfully written to mimi.bin. Total bytes read: 0x137000
 ```
 
 ### InflativeLoading Script
-The script dynamically generates a shellcode stub and appends it to the dump file. 
+The script dynamically generates a shellcode stub and prepends it to the dump file. 
 
 The shellcode completes the following tasks:
 1. Walk PEB and find kernel32.dll
