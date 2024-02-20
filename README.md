@@ -79,7 +79,7 @@ The shellcode completes the following tasks:
 1. Walk PEB and find kernel32.dll
 2. Update command line
 3. Parse kernel32.dll to get the address of LoadLibraryA, GetProcAddress function.
-4. Locate the prepended dump file with an offset
+4. Locate the appended dump file with an offset
 5. Dynamically fix Import Directory, Base Relocation Table Directory, Delayed Load Import Descriptors Directory, etc.
 6. Transfer the execution to the entry point of the PE file.
 
