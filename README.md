@@ -109,7 +109,7 @@ Because InflativeLoading is in its early stage, not every exe is supported well.
 ## Improvement Over ReflectiveLoader
 :heavy_check_mark: No specific export functions are required, making it more friendly towards PE files for which the source code and compilation are not conveniently accessible
 
-:heavy_check_mark: Avoids unintended results due to differences between the PE file on disk and in memory
+:heavy_check_mark: Avoids unintended results due to differences between the PE file on disk and in memory in certain cases
 
 :heavy_check_mark: Eliminates the need for conversion between the original file offset and RVA
 
