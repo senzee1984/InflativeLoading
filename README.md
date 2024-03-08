@@ -1,4 +1,5 @@
 # InflativeLoading
+Article: <https://winslow1984.com/books/malware/page/reflectiveloading-and-inflativeloading>
 
 ## Major Update History
 In this section, major updates are provided. Major updates do include added supports or features.
