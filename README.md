@@ -105,9 +105,21 @@ Because InflativeLoading is in its early stage, not every exe is supported well.
 
 :white_check_mark: Native console program that has an interactive console/shell, like Mimikatz.
 
+## Improvement Over ReflectiveLoader
+:heavy_check_mark: No specific export functions are required, making it more friendly towards PE files for which the source code and compilation are not conveniently accessible
+
+:heavy_check_mark: Avoids unintended results due to differences between the PE file on disk and in memory
+
+:heavy_check_mark: Eliminates the need for conversion between the original file offset and RVA
+
+:heavy_check_mark: Avoids additional memory space allocation
+
+:heavy_check_mark: Avoids RWX memory regions.
+
+:heavy_check_mark: Even for RX memory regions, it does not start with the MZ characteristic, increasing the difficulty of investigation.
+
 
 ## Capabilities
-
 :ballot_box_with_check: Support for normal native EXE
 
 :ballot_box_with_check: Support for EXE that has Delayed Import Directory
