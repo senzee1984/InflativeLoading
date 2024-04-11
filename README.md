@@ -5,9 +5,11 @@ Article: <https://winslow1984.com/books/malware/page/reflectiveloading-and-infla
 In this section, major updates are provided. Major updates do include added supports or features.
 
 ### 4/11/2024 Added PE Signature Obfuscation
-Only a few bytes in the PE header, such as e_lfanew, RVA of Import Directory, are essential for us to complete the loading process. Therefore, other bytes can be overwritten with random ones to hide PE header signatures.
+Only a few bytes in the PE header, such as e_lfanew, RVA of Import Directory, are essential to complete the loading process. Therefore, other bytes can be overwritten with random ones to hide PE header signatures.
 
-After all the processes are completed, even these bytes will be overwritten for complete obfuscation.
+After all the processes are completed, even these bytes will be overwritten for complete obfuscation. For instance, from the screenshot below, we can notice that the PE header is mostly obfuscated, but e_lfanew remains obfuscated for loading purposes. But after the loading process, e_lfanew is also obfuscated. 
+![image](/screenshot/header_obfuscation.jpg)
+
 
 ### 4/11/2024 Replace padded NOP with NOP-Like instruction sequences
 Before the update, 0x90/NOP instructions are padded after the actual shellcode stub to align a memory page. Many NOPs could be a detection, therefore, InflativeLoading script dynamically selects preset NOP-Like instruction sequences. User can also add new ones or replace existing ones to achieve better obfuscation.
@@ -34,6 +36,8 @@ The size of image is 0x58000.
 
 However, some RVA are larger than the number.
 ![image](/screenshot/improved-logic2.jpg)
+
+Besides, the shellcode gracefully exits the program after executing the converted shellcode.
 
 
 ### 4/11/2024 Improved PE Dumper
