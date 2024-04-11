@@ -7,9 +7,25 @@ In this section, major updates are provided. Major updates do include added supp
 ### 4/11/2024 Added PE Signature Obfuscation
 Only a few bytes in the PE header, such as e_lfanew, RVA of Import Directory, are essential for us to complete the loading process. Therefore, other bytes can be overwritten with random ones to hide PE header signatures.
 
+After all the processes are completed, even these bytes will be overwritten for complete obfuscation.
+
 ### 4/11/2024 Replace padded NOP with NOP-Like instruction sequences
 Before the update, 0x90/NOP instructions are padded after the actual shellcode stub to align a memory page. Many NOPs could be a detection, therefore, InflativeLoading script dynamically selects preset NOP-Like instruction sequences. User can also add new ones or replace existing ones to achieve better obfuscation.
 
+```python
+    nop_like_instructions = [
+        {"instruction": [0x90], "length": 1},  # NOP
+        {"instruction": [0x86, 0xdb], "length": 2},  # xchg bl, bl;
+        {"instruction": [0x66, 0x87, 0xf6], "length": 3},  # xchg si, si;
+        {"instruction": [0x48, 0x9c, 0x48, 0x93], "length": 4},  # xchg rax, rbx; xchg rbx, rax;
+        {"instruction": [0x66, 0x83, 0xc2, 0x00], "length": 4},  # add dx, 0
+        {"instruction": [0x0F, 0x1F, 0x40, 0x00], "length": 4},  # 4-byte NOP
+        {"instruction": [0x48, 0xff, 0xc0, 0x48, 0xff, 0xc8], "length": 6},  # inc rax; dec rax;
+        {"instruction": [0x49, 0xf7, 0xd8, 0x49, 0xf7, 0xd8], "length": 6},  # neg r8; neg 48;
+        {"instruction": [0x48, 0x83, 0xc0, 0x01, 0x48, 0xff, 0xc8], "length": 7},  # add rax,0x1; dec rax;
+        {"instruction": [0x48, 0x83, 0xe9, 0x2, 0x48, 0xff, 0xc1, 0x48, 0xff, 0xc1], "length": 10},  # sub rcx, 2; inc rcx; inc rcx
+    ]
+```
 
 ### 4/11/2024 Improved Shellcode Logic
 I added shellcode logic to handle uncommon PE files. For instance, in the CobaltStrike stateless DLL payload, some base relocation entries are invalid because the page RVA is beyond the maximum available RVA.
