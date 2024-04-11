@@ -64,14 +64,59 @@ The dumped main module will be saved as a binary file to append to the shellcode
 
 For instance, DumpPEFromMemory executes a classic tool mimikatz, and dumps its main module into a binary file.
 ```shell
-PS C:\Users\<...SNIP...>> .\DumpPEFromMemory.exe .\mimikatz.exe mimi.bin
-[+] DONE
-[+] Size Of The Image : 0x137000
-Process PID: 12512
-PEB Address:0000000000D41000
-Image Base Address:00007FF69AA80000
-Data successfully written to mimi.bin. Total bytes read: 0x137000
+PS C:\dev\inflativeloading> .\DumpPEFromMemory.exe C:\beacontest.dll beacontest.bin
+[+] The file is a DLL file
+[+] Image base of mapped C:\beacontest.dll is 0x16450000
+[+] e_lfanew of mapped C:\beacontest.dll is 0x100
+[+] imageSize of mapped C:\beacontest.dll is 0x7000
+[+] Size of optinalHeader of mapped C:\beacontest.dll is 0xf0
+[+] Offset of section Header of mapped C:\beacontest.dll is 0x208
+[+] Size of text section of mapped C:\beacontest.dll is 0x1000
+[+] Size of other sections of mapped C:\beacontest.dll is 0x5000
+
+[!] Suggested memory allocations, please adjust accordingly with other memory allocation APIs and languages
+
+// Allocate memory with RX permission for shellcode stub
+LPVOID buffer = VirtualAlloc(NULL, 0x1000, 0x3000, 0x20);
+// Allocate memory with RW permission for PE Header
+VirtualAlloc(buffer + 0x1000, 0x1000, 0x3000, 0x04);
+// Allocate memory with RX permission for text section
+VirtualAlloc(buffer + 0x2000, 0x1000, 0x3000, 0x20);
+// Allocate memory with RW permission for other sections
+VirtualAlloc(buffer + 0x2000 + 0x1000, 0x5000, 0x3000, 0x20);
+
+[+] Data successfully written to beacontest.bin
 ```
+
+
+```shell
+PS C:\dev\inflativeloading> .\DumpPEFromMemory.exe .\mimikatz.exe mimikatz.bin
+[+] The file is an EXE file
+[+] Process PID: 23052
+[+] PEB Address:00000000004A5000
+[+] Image Base Address:00007FF730E00000
+[+] e_lfanew is 0x120
+[+] Size Of The Image : 0x137000
+[+] Size Of Optional Header : 0xf0
+[+] Size Of text Section : 0xc5000
+[+] Size of other sections of mapped .\mimikatz.exe is 0x71000
+
+[!] Suggested memory allocations, please adjust accordingly with other memory allocation APIs and languages
+
+// Allocate memory with RX permission for shellcode stub
+LPVOID buffer = VirtualAlloc(NULL, 0x1000, 0x3000, 0x20);
+// Allocate memory with RW permission for PE Header
+VirtualAlloc(buffer + 0x1000, 0x1000, 0x3000, 0x04);
+// Allocate memory with RX permission for text section
+VirtualAlloc(buffer + 0x2000, 0xc5000, 0x3000, 0x20);
+// Allocate memory with RW permission for other sections
+VirtualAlloc(buffer + 0x2000 + 0xc5000, 0x71000, 0x3000, 0x20);
+
+[+] 29 iterations are needed
+
+[+] Data successfully written to mimikatz.bin. Total bytes read: 0x137000
+```
+
 
 ### InflativeLoading Script
 The script dynamically generates a shellcode stub and prepends it to the dump file. 
