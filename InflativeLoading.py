@@ -1,7 +1,7 @@
 import ctypes, struct
 from keystone import *
 import argparse
-
+import random
 
 def print_banner():
     banner="""
@@ -23,7 +23,7 @@ def print_banner():
     print("Author: Senzee")
     print("Github Repository: https://github.com/senzee1984/InflativeLoading")
     print("Twitter: senzee@1984")
-    print("Website: https://senzee.net")
+    print("Website: https://winslow1984.com")
     print("Description: Dynamically convert a native PE to PIC shellcode")
     print("Attention: Bugs are expected, more support and improvements are coming!\n\n\n")
 
@@ -76,6 +76,47 @@ def print_shellcode(sc):
     print("......"+str(len(sc)-400) +" more bytes......")
 
 
+
+def generate_nop_sequence(desired_length):
+    print("[+] Generating NOP-like instructions to pad shellcode stub up to 0x1000 bytes")
+    nop_like_instructions = [
+        {"instruction": [0x90], "length": 1},  # NOP
+        {"instruction": [0x86, 0xdb], "length": 2},  # xchg bl, bl;
+        {"instruction": [0x66, 0x87, 0xf6], "length": 3},  # xchg si, si;
+        {"instruction": [0x48, 0x9c, 0x48, 0x93], "length": 4},  # xchg rax, rbx; xchg rbx, rax;
+        {"instruction": [0x66, 0x83, 0xc2, 0x00], "length": 4},  # add dx, 0
+        {"instruction": [0x0F, 0x1F, 0x40, 0x00], "length": 4},  # 4-byte NOP
+        {"instruction": [0x48, 0xff, 0xc0, 0x48, 0xff, 0xc8], "length": 6},  # inc rax; dec rax;
+        {"instruction": [0x49, 0xf7, 0xd8, 0x49, 0xf7, 0xd8], "length": 6},  # neg r8; neg 48;
+        {"instruction": [0x48, 0x83, 0xc0, 0x01, 0x48, 0xff, 0xc8], "length": 7},  # add rax,0x1; dec rax;
+        {"instruction": [0x48, 0x83, 0xe9, 0x2, 0x48, 0xff, 0xc1, 0x48, 0xff, 0xc1], "length": 10},  # sub rcx, 2; inc rcx; inc rcx
+    ]
+
+    sequence = bytearray()
+    current_length = 0
+
+    while current_length < desired_length:
+        available_instructions = [instr for instr in nop_like_instructions if current_length + instr["length"] <= desired_length]
+        if not available_instructions:
+            sequence.extend([0x90] * (desired_length - current_length))
+            break
+        
+        selected_instruction = random.choice(available_instructions)
+        sequence.extend(selected_instruction["instruction"])
+        current_length += selected_instruction["length"]
+
+    #sequence_hex = ' '.join(format(byte, '02x') for byte in sequence)
+    return sequence
+
+
+def obfuscate_header(pe_header_array, segments):
+    obfuscated_header = bytearray(random.getrandbits(8) for _ in range(len(pe_header_array))) 
+    # Iterate through each segment and restore the original bytes in those segments
+    for segment in segments:
+        offset, length = next(iter(segment.items()))
+        obfuscated_header[offset:offset + length] = pe_header_array[offset:offset + length]
+
+    return obfuscated_header
 
 
 if __name__ == "__main__":
@@ -185,7 +226,7 @@ f"{update_cmdline_asm}"
     CODE_OFFSET = 4096 - CODE_LEN
 
     CODE2 = (
-" jmp fix_import_dir;"			# Jump to fix_import_dir section
+" jmp fix_import_dir;"			# Jump to fix_iat section
 
 
 "find_nt_header:"			# Quickly return NT header in RAX
@@ -193,6 +234,7 @@ f"{update_cmdline_asm}"
 " mov eax, [rbx+0x3c];"   		# EAX contains e_lfanew
 " add rax, rbx;"          		# RAX points to NT Header
 " ret;"					
+
 
 
 "fix_import_dir:"  			# Init necessary variable for fixing IAT
@@ -290,10 +332,17 @@ f"lea rbx, [rip+{CODE_OFFSET}];"	# Jump to the dump file
 
 
 "loop_block:"
+#" int3;"
 " cmp rsi, rdi;"          		# Compare current block with the end of BaseReloc
 " jge basereloc_fixed_end;"    		# If equal, exit the loop
 " xor r8, r8;"
 " mov r8d, [rsi];"			# R8 = Current block's page RVA
+" call find_nt_header;"			# Reach NT Header
+" add rax, 0x50;"			# Reach image size field
+" cmp r8d, [rax];"			# Compare page rva and image size
+" jg basereloc_fixed_end;"		# Finish base relocation fixing process
+
+
 " add r8, rbx;"				# R8 points to current block page (Should add an offset later)
 " mov r11, r8;"				# Backup R8
 " xor r9, r9;"
@@ -314,6 +363,12 @@ f"lea rbx, [rip+{CODE_OFFSET}];"	# Jump to the dump file
 " mov r10, rax;"			# Copy entry value to R10
 " and eax, 0xfff;"			# Offset, 12 bits
 " add r8, rax;"				# Added an offset
+" call find_nt_header;"			# Reach NT Header
+" add rax, 0x50;"			# Reach image size field
+" sub r8, rbx;"
+" cmp r8d, [rax];"			# Compare page rva and image size
+" jg basereloc_fixed_end;"		# Finish base relocation fixing process
+" add r8, rbx;"
 
 
 "update_entry:"
@@ -332,7 +387,7 @@ f"lea rbx, [rip+{CODE_OFFSET}];"	# Jump to the dump file
 
 
 "basereloc_fixed_end:"
-" sub rsp, 0x8;"			# Stack alignment
+#" sub rsp, 0x8;"			# Stack alignment
 
 
 
@@ -407,10 +462,16 @@ f"lea rbx, [rip+{CODE_OFFSET}];"	# Jump to the dump file
 
 "all_completed:"        
 " call find_nt_header;"
-" xor r15, r15;"
-" mov r15d, [rax+0x28];"		# R15 = Entry point RVA
-" add r15, rbx;"			# R15 = Entry point    		
-" jmp r15;"
+" xor r9, r9;"
+" mov r9d, dword ptr [rax+0x28];"	# R9 = Entry point RVA
+" mov rcx, rbx;"			# RCX = Image Base
+" add rbx, r9;"				# RBX = Entry Point    	
+" xor rdx, rdx;"
+" inc rdx;"
+" xor r8, r8;"
+" sub rsp, 0x30;"
+" call rbx;"
+" add rsp, 0x30;"
 )
 
     ks2 = Ks(KS_ARCH_X86, KS_MODE_64)
@@ -423,10 +484,16 @@ f"lea rbx, [rip+{CODE_OFFSET}];"	# Jump to the dump file
     shellcode = bytearray(sh)
 
     print("[+] Shellcode Stub size: "+str(len(shellcode))+" bytes")
-    print("[*] Padded to 0x1000 bytes to align with page boundary")
-    merged_shellcode = shellcode + b"\x90"*(0x1000-len(shellcode)) + pe_array
+
+    e_lfanew, = struct.unpack('<I', pe_array[0x3c:0x3c+4])
+    print("[!] The offset to NT header is "+ str(e_lfanew))
+    nop_segments = generate_nop_sequence(0x1000-len(shellcode))	# Pad the shellcode stub up to 0x1000 bytes
+    segments = [{0x3c: 4}, {e_lfanew+0x28: 4}, {e_lfanew+0x30: 8}, {e_lfanew+0x50: 4}, {e_lfanew+0x90: 8}, {e_lfanew+0xb0: 8}, {e_lfanew+0xf0: 8}] # Segments in PE header that need to be intact
+    # e_lfanew, entry point, preferred address, size of image, export directory, import directory, baserelocation directory, delayed import directory 
+    merged_shellcode = shellcode + nop_segments + obfuscate_header(pe_array[0:0x1000], segments) + pe_array[0x1000:] 
     print("[!] Shellcoded PE's size: "+str(len(merged_shellcode))+" bytes\n\n")
     print_shellcode(merged_shellcode)
+
 
 
     try:
