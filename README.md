@@ -241,11 +241,11 @@ Dumped versions of calc.exe and mimikatz.exe can be found in the `bin/` folder o
 ## Improvements In The Future
 :bell: The following features and improvements are expected in the future.
 
-+ A separate loader for .NET program.
++ A separate loader for .NET programS.
 
-+ Add support for DLL and export functions.
++ Add support for DLL export functions.
 
-+ Add support for more complex PE files, like packed programs.
++ Add support for more packed programs.
 
 + Improve the shitty code : )
 
