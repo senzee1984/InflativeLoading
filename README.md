@@ -64,17 +64,16 @@ The dumped main module will be saved as a binary file to append to the shellcode
 
 For instance, DumpPEFromMemory executes a classic tool mimikatz, and dumps its main module into a binary file.
 
-![image](/screenshot/dumper-dll.jpg)
 ```shell
-PS C:\dev\inflativeloading> .\DumpPEFromMemory.exe C:\beacontest.dll beacontest.bin
+PS C:\dev\inflativeloading> .\DumpPEFromMemory.exe .\havocdll.dll havocdll.bin
 [+] The file is a DLL file
-[+] Image base of mapped C:\beacontest.dll is 0x16450000
-[+] e_lfanew of mapped C:\beacontest.dll is 0x100
-[+] imageSize of mapped C:\beacontest.dll is 0x7000
-[+] Size of optinalHeader of mapped C:\beacontest.dll is 0xf0
-[+] Offset of section Header of mapped C:\beacontest.dll is 0x208
-[+] Size of text section of mapped C:\beacontest.dll is 0x1000
-[+] Size of other sections of mapped C:\beacontest.dll is 0x5000
+[+] Image base of mapped .\havocdll.dll is 0x87fd0000
+[+] e_lfanew of mapped .\havocdll.dll is 0x80
+[+] imageSize of mapped .\havocdll.dll is 0x1e000
+[+] Size of optinalHeader of mapped .\havocdll.dll is 0xf0
+[+] Offset of section Header of mapped .\havocdll.dll is 0x188
+[+] Size of text section of mapped .\havocdll.dll is 0x18000
+[+] Size of other sections of mapped .\havocdll.dll is 0x5000
 
 [!] Suggested memory allocations, please adjust accordingly with other memory allocation APIs and languages
 
@@ -83,14 +82,15 @@ LPVOID buffer = VirtualAlloc(NULL, 0x1000, 0x3000, 0x20);
 // Allocate memory with RW permission for PE Header
 VirtualAlloc(buffer + 0x1000, 0x1000, 0x3000, 0x04);
 // Allocate memory with RX permission for text section
-VirtualAlloc(buffer + 0x2000, 0x1000, 0x3000, 0x20);
+VirtualAlloc(buffer + 0x2000, 0x18000, 0x3000, 0x20);
 // Allocate memory with RW permission for other sections
-VirtualAlloc(buffer + 0x2000 + 0x1000, 0x5000, 0x3000, 0x20);
+VirtualAlloc(buffer + 0x2000 + 0x18000, 0x5000, 0x3000, 0x20);
 
-[+] Data successfully written to beacontest.bin
+[+] Data successfully written to havocdll.bin
 ```
+![image](/screenshot/dumper-dll-new.jpg)
 
-![image](/screenshot/dumper-exe.jpg)
+
 ```shell
 PS C:\dev\inflativeloading> .\DumpPEFromMemory.exe .\mimikatz.exe mimikatz.bin
 [+] The file is an EXE file
@@ -118,6 +118,7 @@ VirtualAlloc(buffer + 0x2000 + 0xc5000, 0x71000, 0x3000, 0x20);
 
 [+] Data successfully written to mimikatz.bin. Total bytes read: 0x137000
 ```
+![image](/screenshot/dumper-exe.jpg)
 
 
 ### InflativeLoading Script
