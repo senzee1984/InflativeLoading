@@ -5,12 +5,31 @@ Article: <https://winslow1984.com/books/malware/page/reflectiveloading-and-infla
 In this section, major updates are provided. Major updates do include added supports or features.
 
 ### 4/11/2024 Added PE Signature Obfuscation
+Only a few bytes in the PE header, such as e_lfanew, RVA of Import Directory, are essential for us to complete the loading process. Therefore, other bytes can be overwritten with random ones to hide PE header signatures.
+
+### 4/11/2024 Replace padded NOP with NOP-Like instruction sequences
+Before the update, 0x90/NOP instructions are padded after the actual shellcode stub to align a memory page. Many NOPs could be a detection, therefore, InflativeLoading script dynamically selects preset NOP-Like instruction sequences. User can also add new ones or replace existing ones to achieve better obfuscation.
+
 
 ### 4/11/2024 Improved Shellcode Logic
+I added shellcode logic to handle uncommon PE files. For instance, in the CobaltStrike stateless DLL payload, some base relocation entries are invalid because the page RVA is beyond the maximum available RVA.
 
 ### 4/11/2024 Improved PE Dumper
+Now the dumper can display more information, and provide suggestions for memory allocation:
+```shell
+// Allocate memory with RX permission for shellcode stub
+LPVOID buffer = VirtualAlloc(NULL, 0x1000, 0x3000, 0x20);
+// Allocate memory with RW permission for PE Header
+VirtualAlloc(buffer + 0x1000, 0x1000, 0x3000, 0x04);
+// Allocate memory with RX permission for text section
+VirtualAlloc(buffer + 0x2000, 0x1000, 0x3000, 0x20);
+// Allocate memory with RW permission for other sections
+VirtualAlloc(buffer + 0x2000 + 0x1000, 0x5000, 0x3000, 0x20);
+```
+
 
 ### 4/11/2024 Added Support For Unmanaged DLL
+After the update, unmanaged DLLs can also be converted to PIC shellcode. Test cases for custom DLLs, Havoc stageless DLL payload, and CobaltStrike stageless DLL payload are passed.
 
 ### 2/19/2024 Added Basic Support For UPX Packed EXE
 I slightly modified the code that fixes IAT, because I found some lines of code are unnecessary. After this, InflativeLoading can execute **some UPX packed EXE programs**, including **calc.exe**, **PsExec**. However, only some of packed programs. Firstly, I am not likely to test all possible packing configurations for all tested programs. For the second reason, please continue to read:
