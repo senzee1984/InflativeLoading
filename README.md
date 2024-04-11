@@ -4,7 +4,15 @@ Article: <https://winslow1984.com/books/malware/page/reflectiveloading-and-infla
 ## Major Update History
 In this section, major updates are provided. Major updates do include added supports or features.
 
-### Added Basic Support For UPX Packed EXE
+### 4/11/2024 Added PE Signature Obfuscation
+
+### 4/11/2024 Improved Shellcode Logic
+
+### 4/11/2024 Improved PE Dumper
+
+### 4/11/2024 Added Support For Unmanaged DLL
+
+### 2/19/2024 Added Basic Support For UPX Packed EXE
 I slightly modified the code that fixes IAT, because I found some lines of code are unnecessary. After this, InflativeLoading can execute **some UPX packed EXE programs**, including **calc.exe**, **PsExec**. However, only some of packed programs. Firstly, I am not likely to test all possible packing configurations for all tested programs. For the second reason, please continue to read:
 
 For programs that do not have `delayed import directory`, InflativeLoading can execute UPX-packed versions of them. However, unlike unpacked programs, packed programs have all ILT empty.
