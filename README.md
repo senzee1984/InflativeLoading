@@ -27,10 +27,17 @@ Before the update, 0x90/NOP instructions are padded after the actual shellcode s
 ```
 
 ### 4/11/2024 Improved Shellcode Logic
-I added shellcode logic to handle uncommon PE files. For instance, in the CobaltStrike stateless DLL payload, some base relocation entries are invalid because the page RVA is beyond the maximum available RVA.
+I added additional shellcode logic to handle some uncommon exceptions. For instance, in the CobaltStrike stateless DLL payload, some base relocation entries are invalid because the page RVA is larger than size of image.
+
+The size of image is 0x58000.
+![image](/screenshot/improved-logic1.jpg)
+
+However, some RVA are larger than the number.
+![image](/screenshot/improved-logic2.jpg)
+
 
 ### 4/11/2024 Improved PE Dumper
-Now the dumper can display more information, and provide suggestions for memory allocation:
+Now the dumper can display more information and provide suggestions for memory allocation:
 ```shell
 // Allocate memory with RX permission for shellcode stub
 LPVOID buffer = VirtualAlloc(NULL, 0x1000, 0x3000, 0x20);
@@ -41,13 +48,14 @@ VirtualAlloc(buffer + 0x2000, 0x1000, 0x3000, 0x20);
 // Allocate memory with RW permission for other sections
 VirtualAlloc(buffer + 0x2000 + 0x1000, 0x5000, 0x3000, 0x20);
 ```
+The shellcode stub is fixed as 0x1000 bytes, PE header is fixed at 0x1000 bytes, the size of text section and other sections varies.
 
 
 ### 4/11/2024 Added Support For Unmanaged DLL
 After the update, unmanaged DLLs can also be converted to PIC shellcode. Test cases for custom DLLs, Havoc stageless DLL payload, and CobaltStrike stageless DLL payload are passed.
 
 ### 2/19/2024 Added Basic Support For UPX Packed EXE
-I slightly modified the code that fixes IAT, because I found some lines of code are unnecessary. After this, InflativeLoading can execute **some UPX packed EXE programs**, including **calc.exe**, **PsExec**. However, only some of packed programs. Firstly, I am not likely to test all possible packing configurations for all tested programs. For the second reason, please continue to read:
+I slightly modified the code that fixes IAT, because I found some lines of code are unnecessary. After this, InflativeLoading can execute **some UPX packed EXE programs**, including **calc.exe**, **PsExec**. However, only some of packed programs. Firstly, I will not likely test all possible packing configurations for all tested programs. For the second reason, please continue to read:
 
 For programs that do not have `delayed import directory`, InflativeLoading can execute UPX-packed versions of them. However, unlike unpacked programs, packed programs have all ILT empty.
 
