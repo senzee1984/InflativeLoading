@@ -143,16 +143,18 @@ Though the shellcode stub should be less than 1000 bytes typically, the script s
 ## How To Use?
 I believe you already went through both components of InflativeLoading, in summary:
 
-1. Use DumpPEFromMemory.exe to select a native EXE, and then dump the PE main module from memory into a bin file. Regarding the selection of EXE files, please refer to `Best Use Cases` and `Know Issues or Limitations` section.
-2. Use InflativeLoading.py script to prepend a shellcode stub for the dump file. You can choose to provide command line and whether to execute generated shellcode immediately. **Currently, user-supplied command line only works properly for a small set of programs**.
+1. Use DumpPEFromMemory.exe to select a native EXE and then dump the PE main module from memory into a bin file. For information on selecting EXE files, please refer to the `Best Use Cases` and `Know Issues or Limitations` sections.
+2. Use InflativeLoading.py script to prepend a shellcode stub for the dump file. You can choose to provide a command line and whether to execute the generated shellcode immediately. **Currently, the user-supplied command line only works properly for a small set of programs**.
 
 
 ## Best Use Cases
-Because InflativeLoading is in its early stage, not every exe is supported well.
+Because InflativeLoading is in its early stage, not every exe is supported well. Unmanaged DLL is supported well; execution of the export function is coming in the next update!
 
-:white_check_mark: Native console program that does not rely on arguments, like custom C programs
+:white_check_mark: Native console program that does not rely on arguments, like stageless C2 implant
 
-:white_check_mark: Native console program that has an interactive console/shell, like Mimikatz.
+:white_check_mark: Native console program with an interactive console/shell, like Mimikatz.
+
+:white_check_mark: Unmanaged DLL
 
 ## Improvement Over ReflectiveLoader
 :heavy_check_mark: No specific export functions are required, making it more friendly towards PE files for which the source code and compilation are not conveniently accessible
@@ -171,7 +173,9 @@ Because InflativeLoading is in its early stage, not every exe is supported well.
 ## Capabilities
 :ballot_box_with_check: Support for normal native EXE
 
-:ballot_box_with_check: Support for EXE that has Delayed Import Directory
+:ballot_box_with_check: Support for unmanaged DLL 
+
+:ballot_box_with_check: Support for EXE/DLL that has Delayed Import Directory
 
 :ballot_box_with_check: Fix IAT
 
@@ -179,20 +183,24 @@ Because InflativeLoading is in its early stage, not every exe is supported well.
 
 :ballot_box_with_check: Tests passed with classic programs like calc, mimikatz, PsExec, etc. 
 
+:ballot_box_with_check: Tests passed with classic C2 payload, such as CobaltStrike and Havoc stageless DLL payload.
+
+:ballot_box_with_check: Partial support packed programs.
+
 ## Known Issues or Limitations
-:warning: Some of following issues may be fixed in the future, while some of them remain out of scope due to the nature.
+:warning: Some of the following issues may be fixed in the future, while some of them remain out of scope due to their nature.
 
 + Supplied command line does not always work properly. **It is a major area that I will be focusing on**.
 
 + Does not work for GUI programs, like mspaint.exe. But **calc.exe** works well.
 
-+ Does not work for packed programs.
++ Does not work for all packed programs. Some of packed programs can be executed well.
 
 + Does not work for programs that require other dependencies, like custom DLLs.
 
 + Only support **x64**, and I do not plan to add support for x86 programs.
 
-If you encounter any of the above issues or limitations, the execution of shellcode may crash, or the shellcoded EXE cannot properly identify the command line, or no response.
+If you encounter any of the above issues or limitations, the execution of shellcode may crash, the shellcoded EXE cannot properly identify the command line, or there may be no response.
 
 For instance, PsExec.exe can be converted to PIC shellcode, however, user-supplied command line cannot be identified properly.
 ```cmd
@@ -215,14 +223,17 @@ The specified resource type cannot be found in the image file.
 ```
 
 ## Test Cases
-| Program | Has GUI? | Supplied Arguments?| Successful Execution | Execute Properly w Arguments |
-| ----------- | ----------- |----------- | ----------- |----------- | 
-| Simple custom C/C++ programs     | No | No  |:heavy_check_mark: | N/A |
-| calc.exe     | Yes | No |:heavy_check_mark: |N/A |
-| mimikatz.exe  | No | Yes   |:heavy_check_mark: |:heavy_check_mark: |
-| PsExec  | No     |Yes |:heavy_check_mark: |:no_entry_sign:|
-| mspaint.exe  | Yes     |No | :no_entry_sign: |N/A|
-| Packed Programs  | No     |No | :no_entry_sign: |:no_entry_sign:|
+| Program | FORMAT | Has GUI? | Supplied Arguments?| Successful Execution | Execute Properly w Arguments |
+| ----------- | ----------- | ----------- |----------- | ----------- |----------- | 
+| Simple custom C/C++ programs     | EXE |No | No  |:heavy_check_mark: | N/A |
+| Simple custom DLL    | DLL |No | No  |:heavy_check_mark: | N/A |
+| Common C2 EXE Payload     | EXE |No | No  |:heavy_check_mark: | N/A |
+| Common C2 DLL Payload     | DLL |No | No  |:heavy_check_mark: | N/A |
+| calc.exe     | EXE | Yes | No |:heavy_check_mark: |N/A |
+| mimikatz.exe  | EXE | No | Yes   |:heavy_check_mark: |:heavy_check_mark: |
+| PsExec  | EXE | No     |Yes |:heavy_check_mark: |:no_entry_sign:|
+| mspaint.exe  | EXE | Yes     |No | :no_entry_sign: |N/A|
+| Packed Programs  | EXE | No     |No | Partial|N/A |
 
 Dumped versions of calc.exe and mimikatz.exe can be found in the `bin/` folder of the repository. 
 
