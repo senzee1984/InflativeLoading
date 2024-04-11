@@ -19,7 +19,6 @@ Before the update, 0x90/NOP instructions are padded after the actual shellcode s
         {"instruction": [0x66, 0x87, 0xf6], "length": 3},  # xchg si, si;
         {"instruction": [0x48, 0x9c, 0x48, 0x93], "length": 4},  # xchg rax, rbx; xchg rbx, rax;
         {"instruction": [0x66, 0x83, 0xc2, 0x00], "length": 4},  # add dx, 0
-        {"instruction": [0x0F, 0x1F, 0x40, 0x00], "length": 4},  # 4-byte NOP
         {"instruction": [0x48, 0xff, 0xc0, 0x48, 0xff, 0xc8], "length": 6},  # inc rax; dec rax;
         {"instruction": [0x49, 0xf7, 0xd8, 0x49, 0xf7, 0xd8], "length": 6},  # neg r8; neg r8;
         {"instruction": [0x48, 0x83, 0xc0, 0x01, 0x48, 0xff, 0xc8], "length": 7},  # add rax,0x1; dec rax;
