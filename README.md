@@ -63,6 +63,8 @@ In this way, rather than manually map a file, we only need to patch specific dat
 The dumped main module will be saved as a binary file to append to the shellcode stub.
 
 For instance, DumpPEFromMemory executes a classic tool mimikatz, and dumps its main module into a binary file.
+
+![image](/screenshot/dumper-dll.jpg)
 ```shell
 PS C:\dev\inflativeloading> .\DumpPEFromMemory.exe C:\beacontest.dll beacontest.bin
 [+] The file is a DLL file
@@ -88,7 +90,7 @@ VirtualAlloc(buffer + 0x2000 + 0x1000, 0x5000, 0x3000, 0x20);
 [+] Data successfully written to beacontest.bin
 ```
 
-
+![image](/screenshot/dumper-exe.jpg)
 ```shell
 PS C:\dev\inflativeloading> .\DumpPEFromMemory.exe .\mimikatz.exe mimikatz.bin
 [+] The file is an EXE file
