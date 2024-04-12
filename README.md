@@ -150,7 +150,7 @@ Besides, the shellcode gracefully exits the program after executing the converte
 
 ### 4/11/2024 Improved PE Dumper
 Now the dumper can display more information and provide suggestions for memory allocation:
-```shell
+```c
 // Allocate memory with RX permission for shellcode stub
 LPVOID buffer = VirtualAlloc(NULL, 0x1000, 0x3000, 0x20);
 // Allocate memory with RW permission for PE Header
@@ -280,16 +280,16 @@ The below is a passed test case for UPX-packed calc.exe.
 
 
 ## Background
-One of my goals is to convert an exe to shellcode. This way, some security tools like Mimikatz can be used with more flexibility. Though some tools like Donut already achieve this, I still want to create such a tool with my approach, and hopefully, it can bring some improvements.
+One of my goals is to convert an exe to shellcode. This way, some security tools like Mimikatz can be used with more flexibility. Though some tools like Donut have already achieved this, I still want to create such a tool with my approach, and hopefully, it can bring some improvements.
 
-Motivated and inspired by some classic and modern tools and techniques, InflativeLoading is a tool that can dynamically convert a native EXE to PIC shellcode.
+Motivated and inspired by some classic and modern tools and techniques, InflativeLoading is a tool that can dynamically convert an unmanaged EXE/DLL to PIC shellcode.
 
 **In short, InflativeLoading generates and prepends a shellcode stub to a dumped PE main module.**
 
 The tool consists of `DumpPEFromMemory.exe` and `InflativeLoading.py`.
 
 ## Included Components
-The following two components are required to convert a native EXE to shellcode.
+The following two components are required to convert an unmanaged PE file to shellcode.
 
 ### DumpPEFromMemory Project
 
@@ -311,7 +311,7 @@ for (int i = 0; i < pPeHdrs->pImgNtHdrs->FileHeader.NumberOfSections; i++) {
 For `DLL` files, DumPEFromMemory creates a file mapping and maps a view of the file without executing DllMain().
 
 
-Secondly, the PE file's content already exists in the loader's memory(like a byte array), but the loader allocates memory space again. The execution of DumpPEFromMemory is completed on the operator's dev machine. The operator gets a dump of the PE file when it is loaded in memory. Although some data still requires updates, there is no need to allocate a memory region on the victim's machine.
+Secondly, the PE file's content already exists in the loader's memory(like a byte array), but the loader allocates memory space again. The execution of DumpPEFromMemory is completed on the operator's dev machine. The operator gets a dump of the PE file when it is loaded in memory. Although some data still requires updates, allocating a memory region on the victim's machine is unnecessary.
 
 In this way, rather than manually map a file, we only need to patch specific data regions like `Import Directory`, `Base Relocation Table Directory`, `Delayed Load Import Descriptors Directory`, etc.
 
@@ -375,6 +375,7 @@ VirtualAlloc(buffer + 0x2000 + 0x18000, 0x5000, 0x3000, 0x20);
 
 [+] Data successfully written to havocdll.bin
 ```
+
 ![image](/screenshot/dumper-dll-new.jpg)
 
 
@@ -474,6 +475,7 @@ Because InflativeLoading is in its early stage, not every exe is supported well.
 If you encounter any of the above issues or limitations, the execution of shellcode may crash, the converted program cannot properly identify the command line, or there may be no response.
 
 For instance, PsExec.exe can be converted to PIC shellcode, however, user-supplied command line cannot be identified properly.
+
 ```cmd
 C:\Users\<...SNIP>\>python InflativeLoading.py -b psexec.bin -c "-s -i powershell" -e true -o psexec_merged.bin
 
