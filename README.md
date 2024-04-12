@@ -7,7 +7,7 @@ In this section, major updates are provided. Major updates do include added supp
 ### 4/11/2024 Added PE Signature Obfuscation
 Only a few bytes in the PE header, such as `e_lfanew`, RVA of Import Directory, are essential to complete the loading process. Therefore, other bytes can be overwritten with random ones to hide PE header signatures.
 
-After all the processes are completed, even these bytes will be overwritten for complete obfuscation. For instance, from the screenshot below, we can notice that the PE header is mostly obfuscated, but `e_lfanew` remains obfuscated for loading purposes. But after the loading process, `e_lfanew` is also obfuscated. 
+After all the processes are completed, even these bytes will be overwritten for complete obfuscation. For instance, from the screenshot below, we can notice that the PE header is mostly obfuscated, but `e_lfanew` remains unobfuscated for loading purposes. But after the loading process, `e_lfanew` is also obfuscated. 
 
 ![image](/screenshot/header_obfuscation.jpg)
 
