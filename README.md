@@ -160,7 +160,7 @@ VirtualAlloc(buffer + 0x2000, 0x1000, 0x3000, 0x20);
 // Allocate memory with RW permission for other sections
 VirtualAlloc(buffer + 0x2000 + 0x1000, 0x5000, 0x3000, 0x20);
 ```
-The shellcode stub is fixed at 0x1000 bytes, the PE header is fixed at 0x1000 bytes, and the size of the text section and other sections varies.
+The shellcode stub is fixed at `0x1000` bytes, the PE header is fixed at `0x1000` bytes, and the size of the text section and other sections varies.
 
 
 ### 4/11/2024 Added Support For Unmanaged DLL
@@ -280,22 +280,22 @@ The below is a passed test case for UPX-packed calc.exe.
 
 
 ## Background
-Converting an exe to shellcode is one of my goals, in this way, some security tools like Mimikatz can be used with more flexibility. Though some tools like **Donut** already achieved it, I still want to create such a tool with my approach, and hopefully, it can bring some improvements.
+One of my goals is to convert an exe to shellcode. This way, some security tools like Mimikatz can be used with more flexibility. Though some tools like Donut already achieve this, I still want to create such a tool with my approach, and hopefully, it can bring some improvements.
 
 Motivated and inspired by some classic and modern tools and techniques, InflativeLoading is a tool that can dynamically convert a native EXE to PIC shellcode.
 
 **In short, InflativeLoading generates and prepends a shellcode stub to a dumped PE main module.**
 
-The tool consists of two components: `DumpPEFromMemory.exe` and `InflativeLoading.py`.
+The tool consists of `DumpPEFromMemory.exe` and `InflativeLoading.py`.
 
 ## Included Components
-To convert a native EXE to shellcode, the following 2 components are required.
+The following two components are required to convert a native EXE to shellcode.
 
 ### DumpPEFromMemory Project
 
-DumpPEFromMemory.exe is used to get the in-memory version of the selected PE file. It works by creating a process in suspended state and dumping the main module into a binary file (on your dev machine).
+DumpPEFromMemory.exe is used to get the in-memory version of the selected PE file. 
 
-Why? A typical reflective loading process maps each section of a PE file into a newly allocated memory region. Regarding this, I have two concerns: Firstly, although the data of each section is fundamentally consistent whether it resides on disk or in memory, there might still be certain differences for special PE files or under specific circumstances. 
+For `EXE` programs, it works by creating a process in a suspended state and dumping the main module into a binary file (on your dev machine). Why? A typical reflective loading process maps each section of a PE file into a newly allocated memory region. Regarding this, I have two concerns: Firstly, although the data of each section is fundamentally consistent whether it resides on disk or in memory, there might still be certain differences for particular PE files or under specific circumstances. 
 
 ```c
 // Code snippet from Maldev course
@@ -308,7 +308,10 @@ for (int i = 0; i < pPeHdrs->pImgNtHdrs->FileHeader.NumberOfSections; i++) {
 }
 ```
 
-Secondly, the content of the PE file already exists in the loader's memory(Like a byte array), but the loader still allocates memory space again. The execution of DumpPEFromMemory is completed on the operator's dev machine, the operator gets a dump of the PE file when it is loaded in memory. Although some data still requires updates, there is no need to allocate memory region on the victim's machine.
+For `DLL` files, DumPEFromMemory creates a file mapping and maps a view of the file without executing DllMain().
+
+
+Secondly, the PE file's content already exists in the loader's memory(like a byte array), but the loader allocates memory space again. The execution of DumpPEFromMemory is completed on the operator's dev machine. The operator gets a dump of the PE file when it is loaded in memory. Although some data still requires updates, there is no need to allocate a memory region on the victim's machine.
 
 In this way, rather than manually map a file, we only need to patch specific data regions like `Import Directory`, `Base Relocation Table Directory`, `Delayed Load Import Descriptors Directory`, etc.
 
@@ -316,34 +319,7 @@ The dumped main module will be saved as a binary file to append to the shellcode
 
 For instance, DumpPEFromMemory executes a classic tool mimikatz, and dumps its main module into a binary file.
 
-```shell
-PS C:\dev\inflativeloading> .\DumpPEFromMemory.exe .\havocdll.dll havocdll.bin
-[+] The file is a DLL file
-[+] Image base of mapped .\havocdll.dll is 0x87fd0000
-[+] e_lfanew of mapped .\havocdll.dll is 0x80
-[+] imageSize of mapped .\havocdll.dll is 0x1e000
-[+] Size of optinalHeader of mapped .\havocdll.dll is 0xf0
-[+] Offset of section Header of mapped .\havocdll.dll is 0x188
-[+] Size of text section of mapped .\havocdll.dll is 0x18000
-[+] Size of other sections of mapped .\havocdll.dll is 0x5000
-
-[!] Suggested memory allocations, please adjust accordingly with other memory allocation APIs and languages
-
-// Allocate memory with RX permission for shellcode stub
-LPVOID buffer = VirtualAlloc(NULL, 0x1000, 0x3000, 0x20);
-// Allocate memory with RW permission for PE Header
-VirtualAlloc(buffer + 0x1000, 0x1000, 0x3000, 0x04);
-// Allocate memory with RX permission for text section
-VirtualAlloc(buffer + 0x2000, 0x18000, 0x3000, 0x20);
-// Allocate memory with RW permission for other sections
-VirtualAlloc(buffer + 0x2000 + 0x18000, 0x5000, 0x3000, 0x20);
-
-[+] Data successfully written to havocdll.bin
-```
-![image](/screenshot/dumper-dll-new.jpg)
-
-
-```shell
+```powershell
 PS C:\dev\inflativeloading> .\DumpPEFromMemory.exe .\mimikatz.exe mimikatz.bin
 [+] The file is an EXE file
 [+] Process PID: 23052
@@ -373,36 +349,79 @@ VirtualAlloc(buffer + 0x2000 + 0xc5000, 0x71000, 0x3000, 0x20);
 ![image](/screenshot/dumper-exe.jpg)
 
 
+And dump Havoc DLL payload from memory:
+
+```powershell
+PS C:\dev\inflativeloading> .\DumpPEFromMemory.exe .\havocdll.dll havocdll.bin
+[+] The file is a DLL file
+[+] Image base of mapped .\havocdll.dll is 0x87fd0000
+[+] e_lfanew of mapped .\havocdll.dll is 0x80
+[+] imageSize of mapped .\havocdll.dll is 0x1e000
+[+] Size of optinalHeader of mapped .\havocdll.dll is 0xf0
+[+] Offset of section Header of mapped .\havocdll.dll is 0x188
+[+] Size of text section of mapped .\havocdll.dll is 0x18000
+[+] Size of other sections of mapped .\havocdll.dll is 0x5000
+
+[!] Suggested memory allocations, please adjust accordingly with other memory allocation APIs and languages
+
+// Allocate memory with RX permission for shellcode stub
+LPVOID buffer = VirtualAlloc(NULL, 0x1000, 0x3000, 0x20);
+// Allocate memory with RW permission for PE Header
+VirtualAlloc(buffer + 0x1000, 0x1000, 0x3000, 0x04);
+// Allocate memory with RX permission for text section
+VirtualAlloc(buffer + 0x2000, 0x18000, 0x3000, 0x20);
+// Allocate memory with RW permission for other sections
+VirtualAlloc(buffer + 0x2000 + 0x18000, 0x5000, 0x3000, 0x20);
+
+[+] Data successfully written to havocdll.bin
+```
+![image](/screenshot/dumper-dll-new.jpg)
+
+
+
 ### InflativeLoading Script
 The script dynamically generates a shellcode stub and prepends it to the dump file. 
 
 The shellcode completes the following tasks:
 1. Walk PEB and find kernel32.dll
-2. Update command line
+2. Update the command line
 3. Parse kernel32.dll to get the address of LoadLibraryA, GetProcAddress function.
 4. Locate the appended dump file with an offset
 5. Dynamically fix Import Directory, Base Relocation Table Directory, Delayed Load Import Descriptors Directory, etc.
-6. Transfer the execution to the entry point of the PE file.
+6. Choose to obfuscate the PE header
+7. Transfer the execution to the entry point of the PE file.
+8. Exit gracefully
 
 
 For instance, use the script to read previously dumped mimikatz and supply proper command line to dump credentials in LSASS:
 
 ![image](/screenshot/logonpasswords.jpg)
 
-Though the shellcode stub should be less than 1000 bytes typically, the script still pads the shellcode stub to **4096 bytes** for alignment with memory page boundary. Then the operator can easily set proper page permission for different memory regions.
+Though the shellcode stub should typically be less than 1000 bytes, the script still pads it to 4096 bytes for alignment with the memory page boundary. Then, the operator can easily set proper page permissions for different memory regions. The dumper provides memory allocation suggestion:
+
+```powershell
+// Allocate memory with RX permission for shellcode stub
+LPVOID buffer = VirtualAlloc(NULL, 0x1000, 0x3000, 0x20);
+// Allocate memory with RW permission for PE Header
+VirtualAlloc(buffer + 0x1000, 0x1000, 0x3000, 0x04);
+// Allocate memory with RX permission for text section
+VirtualAlloc(buffer + 0x2000, 0xc5000, 0x3000, 0x20);
+// Allocate memory with RW permission for other sections
+VirtualAlloc(buffer + 0x2000 + 0xc5000, 0x71000, 0x3000, 0x20);
+```
 
 
 ## How To Use?
 I believe you already went through both components of InflativeLoading, in summary:
 
-1. Use DumpPEFromMemory.exe to select a native EXE and then dump the PE main module from memory into a bin file. For information on selecting EXE files, please refer to the `Best Use Cases` and `Know Issues or Limitations` sections.
-2. Use InflativeLoading.py script to prepend a shellcode stub for the dump file. You can choose to provide a command line and whether to execute the generated shellcode immediately. **Currently, the user-supplied command line only works properly for a small set of programs**.
+1. Use DumpPEFromMemory.exe to select an unmanaged PE file and dump the PE main module from memory into a bin file. Please refer to the `Best Use Cases` and `Know Issues or Limitations` sections for information on selecting PE files.
+2. Use InflativeLoading.py script to prepend a shellcode stub for the dump file. You can choose to provide a command line, obfuscate or not,  and whether to execute the generated shellcode immediately. **Currently, the user-supplied command line only works properly for a small set of programs**.
 
 
 ## Best Use Cases
 Because InflativeLoading is in its early stage, not every exe is supported well. Unmanaged DLL is supported well; execution of the export function is coming in the next update!
 
-:white_check_mark: Native console program that does not rely on arguments, like stageless C2 implant
+:white_check_mark: Native console program that does not rely on arguments, like stageless C2 implant, simple custom console program.
 
 :white_check_mark: Native console program with an interactive console/shell, like Mimikatz.
 
@@ -435,24 +454,24 @@ Because InflativeLoading is in its early stage, not every exe is supported well.
 
 :ballot_box_with_check: Tests passed with classic programs like calc, mimikatz, PsExec, etc. 
 
-:ballot_box_with_check: Tests passed with classic C2 payload, such as CobaltStrike and Havoc stageless DLL payload.
+:ballot_box_with_check: Tests passed with classic C2 payload, such as CobaltStrike and Havoc stageless DLL/EXE payload.
 
-:ballot_box_with_check: Partial support packed programs.
+:ballot_box_with_check: Partial support for packed programs.
 
 ## Known Issues or Limitations
 :warning: Some of the following issues may be fixed in the future, while some of them remain out of scope due to their nature.
 
 + Supplied command line does not always work properly. **It is a major area that I will be focusing on**.
 
-+ Does not work for GUI programs, like mspaint.exe. But **calc.exe** works well.
++ Does not work well for GUI programs, like mspaint.exe. But **calc.exe** works well.
 
-+ Does not work for all packed programs. Some of packed programs can be executed well.
++ Does not work for all the packed programs. Some of the packed programs can be executed well, it is case by case.
 
 + Does not work for programs that require other dependencies, like custom DLLs.
 
 + Only support **x64**, and I do not plan to add support for x86 programs.
 
-If you encounter any of the above issues or limitations, the execution of shellcode may crash, the shellcoded EXE cannot properly identify the command line, or there may be no response.
+If you encounter any of the above issues or limitations, the execution of shellcode may crash, the converted program cannot properly identify the command line, or there may be no response.
 
 For instance, PsExec.exe can be converted to PIC shellcode, however, user-supplied command line cannot be identified properly.
 ```cmd
@@ -493,7 +512,7 @@ Dumped versions of calc.exe and mimikatz.exe can be found in the `bin/` folder o
 ## Improvements In The Future
 :bell: The following features and improvements are expected in the future.
 
-+ A separate loader for .NET programS.
++ A separate loader for .NET programs.
 
 + Add support for DLL export functions.
 
